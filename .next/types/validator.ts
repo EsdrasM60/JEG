@@ -287,6 +287,24 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies RouteHandlerConfig<"/api/plan-semanal">
 }
 
+// Validate ../../src/app/api/projects/cubicaciones/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/projects/cubicaciones/route.js")
+  handler satisfies RouteHandlerConfig<"/api/projects/cubicaciones">
+}
+
+// Validate ../../src/app/api/projects/overview/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/projects/overview/route.js")
+  handler satisfies RouteHandlerConfig<"/api/projects/overview">
+}
+
+// Validate ../../src/app/api/projects/payments/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/projects/payments/route.js")
+  handler satisfies RouteHandlerConfig<"/api/projects/payments">
+}
+
 // Validate ../../src/app/api/proyectos/[id]/route.ts
 {
   const handler = {} as typeof import("../../src/app/api/proyectos/[id]/route.js")

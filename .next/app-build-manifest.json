@@ -85,6 +85,11 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/proyectos/[id]/route.js"
+    ],
+    "/api/actividad/route": [
+      "static/chunks/webpack.js",
+      "static/chunks/main-app.js",
+      "static/chunks/app/api/actividad/route.js"
     ]
   }
 }
