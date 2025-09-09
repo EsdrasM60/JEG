@@ -85,11 +85,6 @@
       "static/chunks/webpack.js",
       "static/chunks/main-app.js",
       "static/chunks/app/api/proyectos/[id]/route.js"
-    ],
-    "/tareas/calendario/page": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/tareas/calendario/page.js"
     ]
   }
 }

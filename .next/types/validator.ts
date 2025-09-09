@@ -119,12 +119,6 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies AppPageConfig<"/tareas/actividad">
 }
 
-// Validate ../../src/app/tareas/calendario/page.tsx
-{
-  const handler = {} as typeof import("../../src/app/tareas/calendario/page.js")
-  handler satisfies AppPageConfig<"/tareas/calendario">
-}
-
 // Validate ../../src/app/tareas/fichas/page.tsx
 {
   const handler = {} as typeof import("../../src/app/tareas/fichas/page.js")
@@ -159,6 +153,18 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   const handler = {} as typeof import("../../src/app/voluntarios/page.js")
   handler satisfies AppPageConfig<"/voluntarios">
+}
+
+// Validate ../../src/app/api/actividad/[id]/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/actividad/[id]/route.js")
+  handler satisfies RouteHandlerConfig<"/api/actividad/[id]">
+}
+
+// Validate ../../src/app/api/actividad/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/actividad/route.js")
+  handler satisfies RouteHandlerConfig<"/api/actividad">
 }
 
 // Validate ../../src/app/api/admin/reset/route.ts
