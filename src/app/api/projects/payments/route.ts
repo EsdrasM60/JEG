@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { connectMongo } from "@/lib/mongo";
+import { paymentCreateSchema } from "../validators";
 
 export async function GET(_req: Request, { params }: { params: { id: string } }) {
   const session = await auth();
@@ -19,7 +20,10 @@ export async function GET(_req: Request, { params }: { params: { id: string } })
 export async function POST(req: Request, { params }: { params: { id: string } }) {
   const session = await auth();
   if (!session) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const body = await req.json().catch(() => ({}));
+  const bodyRaw = await req.json().catch(() => ({}));
+  const parsed = paymentCreateSchema.safeParse(bodyRaw);
+  if (!parsed.success) return NextResponse.json({ error: "Datos inválidos" }, { status: 400 });
+  const body = parsed.data as any;
   try {
     await connectMongo();
     const { default: Project } = await import("@/models/Project");
