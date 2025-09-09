@@ -1,0 +1,26 @@
+import Link from "next/link";
+import Image from "next/image";
+
+export default function Home() {
+  return (
+    <section className="relative min-h-[calc(100vh-64px)]">
+      {/* Imagen de fondo */}
+      <img src="/Salon.png" alt="" className="absolute inset-0 w-full h-full object-cover" />
+
+      {/* Degradado claro en la parte superior para legibilidad del texto oscuro */}
+      <div className="absolute inset-0 bg-gradient-to-b from-white/80 to-transparent pointer-events-none" />
+
+      {/* Contenido en la parte superior centrado */}
+      <div className="relative z-10 mx-auto max-w-5xl px-6 pt-10 text-center">
+        <h1 className="text-4xl sm:text-5xl font-bold leading-tight text-neutral-900">
+          Programa de Mantenimiento para Salones del Reino
+        </h1>
+        <p className="mt-3 text-neutral-800">
+          Organiza tareas, planes semanales, fotos y la colaboración de la
+          congregación.
+        </p>
+        {/* Botones removidos hasta después del ingreso */}
+      </div>
+    </section>
+  );
+}
