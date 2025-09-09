@@ -155,6 +155,18 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies AppPageConfig<"/voluntarios">
 }
 
+// Validate ../../src/app/api/actividad/[id]/foto/[fotoId]/comentario/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/actividad/[id]/foto/[fotoId]/comentario/route.js")
+  handler satisfies RouteHandlerConfig<"/api/actividad/[id]/foto/[fotoId]/comentario">
+}
+
+// Validate ../../src/app/api/actividad/[id]/foto/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/actividad/[id]/foto/route.js")
+  handler satisfies RouteHandlerConfig<"/api/actividad/[id]/foto">
+}
+
 // Validate ../../src/app/api/actividad/[id]/route.ts
 {
   const handler = {} as typeof import("../../src/app/api/actividad/[id]/route.js")
