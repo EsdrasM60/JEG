@@ -84,6 +84,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ id: String(info.lastInsertRowid) });
     }
   } catch (e: any) {
+    // Better error messages for common cases
+    try {
+      // Mongoose duplicate key error code
+      if (e && (e.code === 11000 || e.code === 11001)) {
+        const dupField = e.keyValue ? Object.keys(e.keyValue)[0] : 'field';
+        return NextResponse.json({ error: `Valor duplicado en ${dupField}` }, { status: 409 });
+      }
+      // Zod or validation errors
+      if (e && e.name === 'ValidationError') {
+        return NextResponse.json({ error: e.message || 'Validation error' }, { status: 400 });
+      }
+    } catch (ignored) {
+      // fall through to generic
+    }
     return NextResponse.json({ error: "Error creando" }, { status: 500 });
   }
 }
