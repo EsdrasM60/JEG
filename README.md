@@ -1,4 +1,4 @@
-# Mantenimiento del Salón del Reino
+# JEG
 
 Aplicación web para gestionar mantenimiento del salón del reino: usuarios con roles, tareas, plan semanal, subida de fotos y colaboración.
 
