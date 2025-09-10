@@ -10,7 +10,8 @@ const VolunteerSchema = new Schema(
     empresa: { type: String }, // nueva propiedad compatible
     cargo: { type: String, enum: ["Supervisor", "Tecnico", "Contratista"], default: "Tecnico" },
     created_by: { type: String },
-    shortId: { type: String, index: true, unique: true },
+    // allow multiple docs without shortId by making the unique index sparse
+    shortId: { type: String, index: true, unique: true, sparse: true },
   },
   { timestamps: true }
 );
