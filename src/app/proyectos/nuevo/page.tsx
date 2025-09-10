@@ -40,6 +40,18 @@ export default function NuevoProyectoPage() {
     ? voluntariosResp as Volunteer[]
     : (voluntariosResp?.items || []) as Volunteer[];
 
+  // Helper to parse currency-like input strings (removes any non-numeric except dot/minus)
+  function parseCurrencyInput(value: string | null | undefined): number {
+    if (!value) return 0;
+    const cleaned = String(value).replace(/[^\d.\-]/g, '');
+    return parseFloat(cleaned) || 0;
+  }
+
+  function formatNumber(value: number): string {
+    if (value === null || value === undefined) return '';
+    return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(value);
+  }
+
   async function crearProyecto(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setIsSubmitting(true);
@@ -49,12 +61,12 @@ export default function NuevoProyectoPage() {
       
       // Construir objeto de presupuesto
       const presupuesto = {
-        materiales: parseFloat(fd.get("presupuesto_materiales") as string) || 0,
-        manoDeObra: parseFloat(fd.get("presupuesto_manoDeObra") as string) || 0,
-        direccionTecnica: parseFloat(fd.get("presupuesto_direccionTecnica") as string) || 0,
-        indirectos: parseFloat(fd.get("presupuesto_indirectos") as string) || 0,
-        itbis: parseFloat(fd.get("presupuesto_itbis") as string) || 0,
-        total: parseFloat(fd.get("presupuesto_total") as string) || 0,
+        materiales: parseCurrencyInput(fd.get("presupuesto_materiales") as string),
+        manoDeObra: parseCurrencyInput(fd.get("presupuesto_manoDeObra") as string),
+        direccionTecnica: parseCurrencyInput(fd.get("presupuesto_direccionTecnica") as string),
+        indirectos: parseCurrencyInput(fd.get("presupuesto_indirectos") as string),
+        itbis: parseCurrencyInput(fd.get("presupuesto_itbis") as string),
+        total: parseCurrencyInput(fd.get("presupuesto_total") as string),
       };
       
       // Solo incluir presupuesto si tiene al menos un valor
@@ -329,11 +341,12 @@ export default function NuevoProyectoPage() {
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[color:var(--muted)] text-sm">$</span>
                 <input
                   name="presupuesto_materiales"
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  type="text"
+                  inputMode="decimal"
                   className="w-full input pl-8"
                   placeholder="0.00"
+                  onBlur={(e) => { e.currentTarget.value = formatNumber(parseCurrencyInput(e.currentTarget.value)); }}
+                  onFocus={(e) => { e.currentTarget.value = String(parseCurrencyInput(e.currentTarget.value) || ''); }}
                 />
               </div>
             </div>
@@ -345,12 +358,13 @@ export default function NuevoProyectoPage() {
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[color:var(--muted)] text-sm">$</span>
                 <input
                   name="presupuesto_manoDeObra"
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  type="text"
+                  inputMode="decimal"
                   className="w-full input pl-8"
                   placeholder="0.00"
-                />
+                  onBlur={(e) => { e.currentTarget.value = formatNumber(parseCurrencyInput(e.currentTarget.value)); }}
+                  onFocus={(e) => { e.currentTarget.value = String(parseCurrencyInput(e.currentTarget.value) || ''); }}
+                 />
               </div>
             </div>
 
@@ -361,12 +375,13 @@ export default function NuevoProyectoPage() {
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[color:var(--muted)] text-sm">$</span>
                 <input
                   name="presupuesto_direccionTecnica"
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  type="text"
+                  inputMode="decimal"
                   className="w-full input pl-8"
                   placeholder="0.00"
-                />
+                  onBlur={(e) => { e.currentTarget.value = formatNumber(parseCurrencyInput(e.currentTarget.value)); }}
+                  onFocus={(e) => { e.currentTarget.value = String(parseCurrencyInput(e.currentTarget.value) || ''); }}
+                 />
               </div>
             </div>
 
@@ -377,12 +392,13 @@ export default function NuevoProyectoPage() {
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[color:var(--muted)] text-sm">$</span>
                 <input
                   name="presupuesto_indirectos"
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  type="text"
+                  inputMode="decimal"
                   className="w-full input pl-8"
                   placeholder="0.00"
-                />
+                  onBlur={(e) => { e.currentTarget.value = formatNumber(parseCurrencyInput(e.currentTarget.value)); }}
+                  onFocus={(e) => { e.currentTarget.value = String(parseCurrencyInput(e.currentTarget.value) || ''); }}
+                 />
               </div>
             </div>
 
@@ -393,12 +409,13 @@ export default function NuevoProyectoPage() {
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[color:var(--muted)] text-sm">$</span>
                 <input
                   name="presupuesto_itbis"
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  type="text"
+                  inputMode="decimal"
                   className="w-full input pl-8"
                   placeholder="0.00"
-                />
+                  onBlur={(e) => { e.currentTarget.value = formatNumber(parseCurrencyInput(e.currentTarget.value)); }}
+                  onFocus={(e) => { e.currentTarget.value = String(parseCurrencyInput(e.currentTarget.value) || ''); }}
+                 />
               </div>
             </div>
 
@@ -409,15 +426,16 @@ export default function NuevoProyectoPage() {
                 <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[color:var(--muted)] text-sm">$</span>
                 <input
                   name="presupuesto_total"
-                  type="number"
-                  step="0.01"
-                  min="0"
+                  type="text"
+                  inputMode="decimal"
                   className="w-full input pl-8"
                   placeholder="0.00"
-                />
-              </div>
-            </div>
-          </div>
+                  onBlur={(e) => { e.currentTarget.value = formatNumber(parseCurrencyInput(e.currentTarget.value)); }}
+                  onFocus={(e) => { e.currentTarget.value = String(parseCurrencyInput(e.currentTarget.value) || ''); }}
+                 />
+               </div>
+             </div>
+           </div>
 
           <div className="mt-4 text-sm text-[color:var(--muted)]">
             💡 Puedes dejar estos campos vacíos y agregar el presupuesto más tarde en la configuración del proyecto.

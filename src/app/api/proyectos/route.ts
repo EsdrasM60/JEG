@@ -25,12 +25,18 @@ export async function POST(req: Request) {
     await connectMongo();
     const body = await req.json().catch(() => ({}));
     if (!body.titulo) return NextResponse.json({ error: "titulo requerido" }, { status: 400 });
-    let actorFromSession = undefined;
-    try {
-      const { auth } = await import("@/lib/auth");
-      const session = await auth();
-      if (session && (session as any).user && (session as any).user.email) actorFromSession = (session as any).user.email;
-    } catch (e) {}
+    // Normalize presupuesto if provided
+    let presupuestoNormalized: any = undefined;
+    if (body.presupuesto && typeof body.presupuesto === 'object') {
+      const p = body.presupuesto;
+      const materiales = Number(p.materiales) || 0;
+      const manoDeObra = Number(p.manoDeObra) || 0;
+      const direccionTecnica = Number(p.direccionTecnica) || 0;
+      const indirectos = Number(p.indirectos) || 0;
+      const itbis = Number(p.itbis) || 0;
+      const total = Number(p.total) || (materiales + manoDeObra + direccionTecnica + indirectos + itbis);
+      presupuestoNormalized = { materiales, manoDeObra, direccionTecnica, indirectos, itbis, total };
+    }
     const doc = await Project.create({
       titulo: body.titulo,
       descripcion: body.descripcion || undefined,
@@ -43,7 +49,8 @@ export async function POST(req: Request) {
       checklist: Array.isArray(body.checklist)
         ? body.checklist.map((item: any) => (typeof item === "string" ? { text: item, done: false } : { text: String(item?.text || ""), done: Boolean(item?.done) })).filter((i: any) => i.text)
         : [],
-      created_by: actorFromSession || body.actor || undefined,
+      presupuesto: presupuestoNormalized,
+      created_by: body.actor || undefined,
     });
     return NextResponse.json(doc);
   } catch (e) {
