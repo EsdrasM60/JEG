@@ -73,6 +73,20 @@ export async function POST(req: Request) {
     if (process.env.MONGODB_URI) {
       await connectMongo();
       const { default: Volunteer } = await import("@/models/Volunteer");
+      // Ensure we set a unique shortId to avoid duplicate index errors
+      try {
+        let shortId = data.shortId || makeShortId(`${data.nombre}-${data.apellido}-${Date.now()}`);
+        let attempts = 0;
+        while (await Volunteer.exists({ shortId })) {
+          attempts++;
+          shortId = makeShortId(`${data.nombre}-${data.apellido}-${Date.now()}-${attempts}`) + String(100 + Math.floor(Math.random() * 900));
+          if (attempts > 10) break;
+        }
+        data.shortId = shortId;
+      } catch (idxErr) {
+        // ignore index check errors and let create handle possible dupes
+      }
+
       const doc: any = await Volunteer.create(data);
       return NextResponse.json({ id: String(doc._id) });
     } else {
