@@ -1,11 +1,10 @@
 import { NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongo";
 import Programa from "@/models/Programa";
-import Ficha from "@/models/Ficha";
-import Volunteer from "@/models/Volunteer";
 
 export async function GET(req: Request) {
   await connectMongo();
+
   const { searchParams } = new URL(req.url);
   const page = parseInt(searchParams.get("page") || "1");
   const pageSize = Math.min(parseInt(searchParams.get("pageSize") || "20"), 1000);
@@ -85,6 +84,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   await connectMongo();
+
   const body = await req.json();
   // accept supervisorId / tecnicoId as aliases
   if (body.supervisorId && !body.voluntarioId) body.voluntarioId = body.supervisorId;

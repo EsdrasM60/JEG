@@ -28,6 +28,14 @@ export async function connectMongo() {
       });
   }
   g._mongoose.conn = await g._mongoose.promise;
+
+  // Ensure all models are registered (avoid MissingSchemaError due to load order / HMR)
+  try {
+    await import("@/lib/models");
+  } catch (e) {
+    // ignore
+  }
+
   return g._mongoose.conn;
 }
 

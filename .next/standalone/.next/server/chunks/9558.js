@@ -1,1 +1,0 @@
-"use strict";exports.id=9558,exports.ids=[9558],exports.modules={99558:(a,b,c)=>{c.d(b,{default:()=>f});var d=c(56037);let e=new d.Schema({email:{type:String,required:!0,index:!0},token:{type:String,required:!0,unique:!0,index:!0},expiresAt:{type:Date,required:!0,index:{expireAfterSeconds:0}}},{timestamps:!0}),f=d.models.PasswordResetToken||(0,d.model)("PasswordResetToken",e)}};
