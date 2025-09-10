@@ -21,6 +21,30 @@ const ChecklistItemSchema = new Schema(
   { _id: false }
 );
 
+// NUEVO: Checklist categorizado
+const ChecklistCategorySchema = new Schema(
+  {
+    title: { type: String, required: true }, // ej: "Obra Gris", "Alambrado"
+    items: { type: [ChecklistItemSchema], default: [] },
+    isCollapsed: { type: Boolean, default: false },
+    order: { type: Number, default: 0 }, // para ordenar las categorías
+  },
+  { _id: true }
+);
+
+// NUEVO: Presupuesto aprobado detallado
+const PresupuestoSchema = new Schema(
+  {
+    materiales: { type: Number, default: 0 },
+    manoDeObra: { type: Number, default: 0 },
+    direccionTecnica: { type: Number, default: 0 },
+    indirectos: { type: Number, default: 0 },
+    itbis: { type: Number, default: 0 },
+    total: { type: Number, default: 0 },
+  },
+  { _id: false }
+);
+
 // NUEVO: Cubicacion (partida)
 const CubicacionSchema = new Schema(
   {
@@ -73,6 +97,23 @@ const WeeklyTaskSchema = new Schema(
   { _id: true }
 );
 
+// NUEVO: Bitácora entry
+const BitacoraEntrySchema = new Schema(
+  {
+    fecha: { type: Date, required: true },
+    notas: { type: String, required: true },
+    fotos: [{
+      mediaId: { type: Schema.Types.ObjectId, required: true },
+      thumbId: { type: Schema.Types.ObjectId, required: false },
+      titulo: { type: String },
+      enEvidencia: { type: Boolean, default: false }
+    }],
+    createdBy: { type: String, required: true },
+    createdAt: { type: Date, default: Date.now }
+  },
+  { _id: true }
+);
+
 const ProjectSchema = new Schema(
   {
     titulo: { type: String, required: true, index: true },
@@ -103,6 +144,9 @@ const ProjectSchema = new Schema(
       createdAt: { type: Date, default: Date.now },
     },
 
+    // Presupuesto aprobado detallado
+    presupuesto: { type: PresupuestoSchema, required: false },
+
     // Cubicaciones embebidas
     cubicaciones: { type: [CubicacionSchema], default: [] },
 
@@ -116,8 +160,11 @@ const ProjectSchema = new Schema(
     weeklyTasks: { type: [WeeklyTaskSchema], default: [] },
 
     evidencias: { type: [EvidenciaSchema], default: [] },
-    // Cambiado: lista de verificación con estado por ítem
-    checklist: { type: [ChecklistItemSchema], default: [] },
+    // Bitácora de actividades
+    bitacora: { type: [BitacoraEntrySchema], default: [] },
+    // Checklist categorizado y lista legacy para compatibilidad
+    checklistCategories: { type: [ChecklistCategorySchema], default: [] },
+    checklist: { type: [ChecklistItemSchema], default: [] }, // mantener compatibilidad
     created_by: { type: String },
   },
   { timestamps: true }

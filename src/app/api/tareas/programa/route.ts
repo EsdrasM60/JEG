@@ -90,21 +90,29 @@ export async function POST(req: Request) {
   if (body.supervisorId && !body.voluntarioId) body.voluntarioId = body.supervisorId;
   if (body.tecnicoId && !body.ayudanteId) body.ayudanteId = body.tecnicoId;
 
-  if (!body.fichaId || !body.voluntarioId || !body.asignadoFecha) {
+  // Require supervisor (voluntario) and asignadoFecha; fichaId is optional for general tasks
+  if (!body.voluntarioId || !body.asignadoFecha) {
     return NextResponse.json({ error: "Datos incompletos" }, { status: 400 });
   }
-  const prog = await Programa.create({
-    fichaId: body.fichaId,
-    voluntarioId: body.voluntarioId,
-    ayudanteId: body.ayudanteId || null,
-    asignadoFecha: new Date(body.asignadoFecha),
-    completadoFecha: body.completadoFecha ? new Date(body.completadoFecha) : null,
-    notas: body.notas || null,
-    fotos: Array.isArray(body.fotos) ? body.fotos : [],
-  });
 
-  const resObj = (prog as any).toObject ? (prog as any).toObject() : prog;
-  resObj.supervisorId = resObj.voluntarioId ?? null;
-  resObj.tecnicoId = resObj.ayudanteId ?? null;
-  return NextResponse.json(resObj);
+  try {
+    const prog = await Programa.create({
+      fichaId: body.fichaId || null,
+      voluntarioId: body.voluntarioId,
+      ayudanteId: body.ayudanteId || null,
+      asignadoFecha: new Date(body.asignadoFecha),
+      completadoFecha: body.completadoFecha ? new Date(body.completadoFecha) : null,
+      notas: body.notas || null,
+      fotos: Array.isArray(body.fotos) ? body.fotos : [],
+    });
+
+    const resObj = (prog as any).toObject ? (prog as any).toObject() : prog;
+    resObj.supervisorId = resObj.voluntarioId ?? null;
+    resObj.tecnicoId = resObj.ayudanteId ?? null;
+    return NextResponse.json(resObj);
+  } catch (err: any) {
+    // Return a useful error message for the client
+    const message = err?.message || String(err) || "Error creando programa";
+    return NextResponse.json({ error: message }, { status: 500 });
+  }
 }

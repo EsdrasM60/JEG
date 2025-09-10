@@ -28,6 +28,14 @@ export async function POST(req: Request) {
     await connectMongo();
     const body = await req.json().catch(() => ({}));
     if (!body.title || !body.projectId) return NextResponse.json({ error: "titulo y projectId requeridos" }, { status: 400 });
+    // attempt to get authenticated user
+    let actor = undefined;
+    try {
+      const { auth } = await import("@/lib/auth");
+      const session = await auth();
+      if (session && (session as any).user && (session as any).user.email) actor = (session as any).user.email;
+    } catch (e) {}
+
     const doc = await Task.create({
       projectId: body.projectId,
       title: body.title,
@@ -36,7 +44,7 @@ export async function POST(req: Request) {
       priority: typeof body.priority === "number" ? body.priority : 3,
       assigneeId: body.assigneeId || undefined,
       dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
-      created_by: body.actor || undefined,
+      created_by: actor || body.actor || undefined,
     });
     return NextResponse.json(doc);
   } catch (e) {

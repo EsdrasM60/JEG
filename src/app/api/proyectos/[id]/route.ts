@@ -5,27 +5,28 @@ import Project from "@/models/Project";
 export async function PATCH(req: Request, context: any) {
   try {
     await connectMongo();
-    const { params } = context as { params: { id: string } };
-    const { id } = params;
+    const { params } = context as { params: Promise<{ id: string }> };
+    const { id } = await params;
     const body = await req.json().catch(() => ({}));
 
-    // Operaciones sobre evidencias
+    // Preparar operaciones sobre evidencias (no ejecutar todavía)
+    let evidenciasToAdd = null;
     if (Array.isArray(body.addEvidencias) && body.addEvidencias.length > 0) {
-      const toAdd = body.addEvidencias.map((e: any) => ({
+      let actorFromSession = undefined;
+      try {
+        const { auth } = await import("@/lib/auth");
+        const session = await auth();
+        if (session && (session as any).user && (session as any).user.email) actorFromSession = (session as any).user.email;
+      } catch (e) {}
+
+      evidenciasToAdd = body.addEvidencias.map((e: any) => ({
         mediaId: e.mediaId,
         thumbId: e.thumbId || undefined,
         titulo: e.titulo || undefined,
         puntos: Array.isArray(e.puntos) ? e.puntos : [],
-        created_by: body.actor || undefined,
+        created_by: actorFromSession || body.actor || undefined,
         createdAt: new Date(),
       }));
-      const doc = await Project.findByIdAndUpdate(
-        id,
-        { $push: { evidencias: { $each: toAdd } } },
-        { new: true }
-      ).lean();
-      if (!doc) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
-      return NextResponse.json(doc);
     }
 
     if (Array.isArray(body.removeEvidenciaIds) && body.removeEvidenciaIds.length > 0) {
@@ -71,19 +72,61 @@ export async function PATCH(req: Request, context: any) {
             : []);
     }
 
-    const doc = await Project.findByIdAndUpdate(id, updates, { new: true }).lean();
-    if (!doc) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+    // NUEVO: actualizar checklist por categorías
+    if ("checklistCategories" in body) {
+      updates.checklistCategories = Array.isArray(body.checklistCategories)
+        ? body.checklistCategories.map((category: any) => ({
+            title: String(category.title || ""),
+            items: Array.isArray(category.items)
+              ? category.items.map((item: any) => ({
+                  text: String(item?.text || ""),
+                  done: Boolean(item?.done)
+                })).filter((i: any) => i.text)
+              : [],
+            isCollapsed: Boolean(category.isCollapsed),
+            order: Number(category.order) || 0
+          })).filter((cat: any) => cat.title)
+        : [];
+    }
+
+    // NUEVO: actualizar bitácora
+    if ("bitacora" in body && Array.isArray(body.bitacora)) {
+      updates.bitacora = body.bitacora.map((entry: any) => ({
+        fecha: new Date(entry.fecha),
+        notas: String(entry.notas || ""),
+        fotos: Array.isArray(entry.fotos) ? entry.fotos.map((foto: any) => ({
+          mediaId: foto.mediaId,
+          thumbId: foto.thumbId || undefined,
+          titulo: foto.titulo || undefined,
+          enEvidencia: Boolean(foto.enEvidencia)
+        })) : [],
+        createdBy: String(entry.createdBy || ""),
+        createdAt: entry.createdAt ? new Date(entry.createdAt) : new Date()
+      }));
+    }
+
+    // Si hay evidencias que agregar, ejecutar esa operación también
+    if (evidenciasToAdd && evidenciasToAdd.length > 0) {
+      doc = await Project.findByIdAndUpdate(
+        id,
+        { $push: { evidencias: { $each: evidenciasToAdd } } },
+        { new: true }
+      ).lean();
+      if (!doc) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+    }
+
     return NextResponse.json(doc);
   } catch (e) {
-    return NextResponse.json({ error: "Unexpected" }, { status: 500 });
+    console.error("Error en PATCH /api/proyectos/[id]:", e);
+    return NextResponse.json({ error: "Unexpected", details: e instanceof Error ? e.message : String(e) }, { status: 500 });
   }
 }
 
 export async function DELETE(_req: Request, context: any) {
   try {
     await connectMongo();
-    const { params } = context as { params: { id: string } };
-    const { id } = params;
+    const { params } = context as { params: Promise<{ id: string }> };
+    const { id } = await params;
     const res = await Project.deleteOne({ _id: id });
     if (res.deletedCount === 0) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
     return NextResponse.json({ ok: true });
@@ -96,8 +139,8 @@ export async function DELETE(_req: Request, context: any) {
 export async function GET(_req: Request, context: any) {
   try {
     await connectMongo();
-    const { params } = context as { params: { id: string } };
-    const { id } = params;
+    const { params } = context as { params: Promise<{ id: string }> };
+    const { id } = await params;
     const doc = await Project.findById(id).lean();
     if (!doc) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
     return NextResponse.json(doc);

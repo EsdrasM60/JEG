@@ -1,1 +1,0 @@
-{"kind":"FETCH","data":{"headers":{"connection":"keep-alive","content-type":"application/json","date":"Tue, 09 Sep 2025 00:57:46 GMT","keep-alive":"timeout=5","transfer-encoding":"chunked","vary":"rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch"},"body":"W10=","status":200,"url":"http://localhost:3002/api/voluntarios"},"revalidate":60,"tags":[]}

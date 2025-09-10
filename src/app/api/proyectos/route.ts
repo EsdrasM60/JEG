@@ -25,6 +25,12 @@ export async function POST(req: Request) {
     await connectMongo();
     const body = await req.json().catch(() => ({}));
     if (!body.titulo) return NextResponse.json({ error: "titulo requerido" }, { status: 400 });
+    let actorFromSession = undefined;
+    try {
+      const { auth } = await import("@/lib/auth");
+      const session = await auth();
+      if (session && (session as any).user && (session as any).user.email) actorFromSession = (session as any).user.email;
+    } catch (e) {}
     const doc = await Project.create({
       titulo: body.titulo,
       descripcion: body.descripcion || undefined,
@@ -37,7 +43,7 @@ export async function POST(req: Request) {
       checklist: Array.isArray(body.checklist)
         ? body.checklist.map((item: any) => (typeof item === "string" ? { text: item, done: false } : { text: String(item?.text || ""), done: Boolean(item?.done) })).filter((i: any) => i.text)
         : [],
-      created_by: body.actor || undefined,
+      created_by: actorFromSession || body.actor || undefined,
     });
     return NextResponse.json(doc);
   } catch (e) {
