@@ -1,9 +1,11 @@
 "use client";
 
+export const dynamic = 'force-dynamic';
+
 import React, { useEffect, useState } from "react";
 
 async function fetchActividades(projectId?: string) {
-  const url = new URL(`/api/actividad`, window.location.origin);
+  const url = new URL(`/api/actividad`, (typeof window !== 'undefined' ? window.location.origin : ''));
   if (projectId) url.searchParams.set("projectId", projectId);
   const res = await fetch(url.toString());
   if (!res.ok) throw new Error("Fetch failed");

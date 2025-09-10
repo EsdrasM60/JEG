@@ -10,8 +10,7 @@ const createSchema = z.object({
   telefono: z.string().optional().nullable(),
   congregacion: z.string().optional().nullable(),
   empresa: z.string().optional().nullable(),
-  a2: z.boolean().optional(),
-  trabajo_altura: z.boolean().optional(),
+  cargo: z.enum(["Supervisor", "Tecnico", "Contratista"]).optional(),
 });
 
 function makeShortId(seed: string) {
@@ -42,8 +41,7 @@ export async function GET() {
         telefono: d.telefono ?? null,
         congregacion: d.congregacion ?? null,
         empresa: d.empresa ?? d.congregacion ?? null,
-        a2: !!d.a2,
-        trabajo_altura: !!d.trabajo_altura,
+        cargo: d.cargo || (d.a2 ? "Supervisor" : "Tecnico"),
         createdAt: d.createdAt,
       }));
       return NextResponse.json(rows);
@@ -54,10 +52,10 @@ export async function GET() {
 
   const rows = db
     .prepare(
-      "SELECT id, short_id as shortId, nombre, apellido, email, telefono, congregacion, a2, trabajo_altura, datetime(created_at) as createdAt FROM volunteers ORDER BY lower(apellido) ASC, lower(nombre) ASC"
+      "SELECT id, short_id as shortId, nombre, apellido, email, telefono, congregacion, cargo, datetime(created_at) as createdAt FROM volunteers ORDER BY lower(apellido) ASC, lower(nombre) ASC"
     )
     .all();
-  return NextResponse.json(rows.map((r: any) => ({ ...(r as any), empresa: r.congregacion }))); // sqlite stores in congregacion
+  return NextResponse.json(rows.map((r: any) => ({ ...(r as any), empresa: r.congregacion })));
 }
 
 export async function POST(req: Request) {
@@ -80,9 +78,9 @@ export async function POST(req: Request) {
     } else {
       const info = db
         .prepare(
-          "INSERT INTO volunteers (short_id, nombre, apellido, telefono, congregacion, a2, trabajo_altura, created_at) VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))"
+          "INSERT INTO volunteers (short_id, nombre, apellido, telefono, congregacion, cargo, created_at) VALUES (?, ?, ?, ?, ?, ?, datetime('now'))"
         )
-        .run(null, data.nombre, data.apellido, data.telefono ?? null, data.congregacion ?? null, data.a2 ? 1 : 0, data.trabajo_altura ? 1 : 0);
+        .run(null, data.nombre, data.apellido, data.telefono ?? null, data.congregacion ?? null, data.cargo ?? 'Tecnico');
       return NextResponse.json({ id: String(info.lastInsertRowid) });
     }
   } catch (e: any) {

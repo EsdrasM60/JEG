@@ -1,1 +1,345 @@
-{"version":3,"caseSensitive":false,"basePath":"","rewrites":{"beforeFiles":[],"afterFiles":[],"fallback":[]},"redirects":[{"source":"/:path+/","destination":"/:path+","permanent":true,"internal":true,"regex":"^(?:\\/((?:[^\\/]+?)(?:\\/(?:[^\\/]+?))*))\\/$"}],"headers":[]}
+{
+  "version": 3,
+  "pages404": true,
+  "caseSensitive": false,
+  "basePath": "",
+  "redirects": [
+    {
+      "source": "/:path+/",
+      "destination": "/:path+",
+      "internal": true,
+      "statusCode": 308,
+      "regex": "^(?:/((?:[^/]+?)(?:/(?:[^/]+?))*))/$"
+    }
+  ],
+  "headers": [],
+  "rewrites": {
+    "beforeFiles": [],
+    "afterFiles": [],
+    "fallback": []
+  },
+  "dynamicRoutes": [
+    {
+      "page": "/api/actividad/[id]",
+      "regex": "^/api/actividad/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/actividad/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/actividad/[id]/foto",
+      "regex": "^/api/actividad/([^/]+?)/foto(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/actividad/(?<nxtPid>[^/]+?)/foto(?:/)?$"
+    },
+    {
+      "page": "/api/actividad/[id]/foto/[fotoId]/comentario",
+      "regex": "^/api/actividad/([^/]+?)/foto/([^/]+?)/comentario(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid",
+        "nxtPfotoId": "nxtPfotoId"
+      },
+      "namedRegex": "^/api/actividad/(?<nxtPid>[^/]+?)/foto/(?<nxtPfotoId>[^/]+?)/comentario(?:/)?$"
+    },
+    {
+      "page": "/api/admin/users/[id]",
+      "regex": "^/api/admin/users/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/admin/users/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/admin/users/[id]/approve",
+      "regex": "^/api/admin/users/([^/]+?)/approve(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/admin/users/(?<nxtPid>[^/]+?)/approve(?:/)?$"
+    },
+    {
+      "page": "/api/admin/users/[id]/role",
+      "regex": "^/api/admin/users/([^/]+?)/role(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/admin/users/(?<nxtPid>[^/]+?)/role(?:/)?$"
+    },
+    {
+      "page": "/api/auth/[...nextauth]",
+      "regex": "^/api/auth/(.+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPnextauth": "nxtPnextauth"
+      },
+      "namedRegex": "^/api/auth/(?<nxtPnextauth>.+?)(?:/)?$"
+    },
+    {
+      "page": "/api/checklist-templates/[id]",
+      "regex": "^/api/checklist\\-templates/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/checklist\\-templates/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/images/[id]",
+      "regex": "^/api/images/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/images/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/proyectos/[id]",
+      "regex": "^/api/proyectos/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/proyectos/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/tareas/fichas/file/[id]",
+      "regex": "^/api/tareas/fichas/file/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/tareas/fichas/file/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/tareas/fichas/[id]",
+      "regex": "^/api/tareas/fichas/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/tareas/fichas/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/tareas/programa/[id]",
+      "regex": "^/api/tareas/programa/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/tareas/programa/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/tareas/[id]",
+      "regex": "^/api/tareas/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/tareas/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/api/voluntarios/[id]",
+      "regex": "^/api/voluntarios/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/api/voluntarios/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/proyectos/[id]",
+      "regex": "^/proyectos/([^/]+?)(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/proyectos/(?<nxtPid>[^/]+?)(?:/)?$"
+    },
+    {
+      "page": "/proyectos/[id]/asignaciones",
+      "regex": "^/proyectos/([^/]+?)/asignaciones(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/proyectos/(?<nxtPid>[^/]+?)/asignaciones(?:/)?$"
+    },
+    {
+      "page": "/proyectos/[id]/bitacora",
+      "regex": "^/proyectos/([^/]+?)/bitacora(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/proyectos/(?<nxtPid>[^/]+?)/bitacora(?:/)?$"
+    },
+    {
+      "page": "/proyectos/[id]/checklist",
+      "regex": "^/proyectos/([^/]+?)/checklist(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/proyectos/(?<nxtPid>[^/]+?)/checklist(?:/)?$"
+    },
+    {
+      "page": "/proyectos/[id]/configuracion",
+      "regex": "^/proyectos/([^/]+?)/configuracion(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/proyectos/(?<nxtPid>[^/]+?)/configuracion(?:/)?$"
+    },
+    {
+      "page": "/proyectos/[id]/evidencias",
+      "regex": "^/proyectos/([^/]+?)/evidencias(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/proyectos/(?<nxtPid>[^/]+?)/evidencias(?:/)?$"
+    },
+    {
+      "page": "/proyectos/[id]/tareas",
+      "regex": "^/proyectos/([^/]+?)/tareas(?:/)?$",
+      "routeKeys": {
+        "nxtPid": "nxtPid"
+      },
+      "namedRegex": "^/proyectos/(?<nxtPid>[^/]+?)/tareas(?:/)?$"
+    }
+  ],
+  "staticRoutes": [
+    {
+      "page": "/",
+      "regex": "^/(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/(?:/)?$"
+    },
+    {
+      "page": "/_not-found",
+      "regex": "^/_not\\-found(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/_not\\-found(?:/)?$"
+    },
+    {
+      "page": "/actividad",
+      "regex": "^/actividad(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/actividad(?:/)?$"
+    },
+    {
+      "page": "/dashboard",
+      "regex": "^/dashboard(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/dashboard(?:/)?$"
+    },
+    {
+      "page": "/favicon.ico",
+      "regex": "^/favicon\\.ico(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/favicon\\.ico(?:/)?$"
+    },
+    {
+      "page": "/forgot-password",
+      "regex": "^/forgot\\-password(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/forgot\\-password(?:/)?$"
+    },
+    {
+      "page": "/fotos",
+      "regex": "^/fotos(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/fotos(?:/)?$"
+    },
+    {
+      "page": "/perfil",
+      "regex": "^/perfil(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/perfil(?:/)?$"
+    },
+    {
+      "page": "/plan-semanal",
+      "regex": "^/plan\\-semanal(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/plan\\-semanal(?:/)?$"
+    },
+    {
+      "page": "/proyectos",
+      "regex": "^/proyectos(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/proyectos(?:/)?$"
+    },
+    {
+      "page": "/proyectos/nuevo",
+      "regex": "^/proyectos/nuevo(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/proyectos/nuevo(?:/)?$"
+    },
+    {
+      "page": "/register",
+      "regex": "^/register(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/register(?:/)?$"
+    },
+    {
+      "page": "/reset-password",
+      "regex": "^/reset\\-password(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/reset\\-password(?:/)?$"
+    },
+    {
+      "page": "/signin",
+      "regex": "^/signin(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/signin(?:/)?$"
+    },
+    {
+      "page": "/tareas",
+      "regex": "^/tareas(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/tareas(?:/)?$"
+    },
+    {
+      "page": "/tareas/actividad",
+      "regex": "^/tareas/actividad(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/tareas/actividad(?:/)?$"
+    },
+    {
+      "page": "/tareas/fichas",
+      "regex": "^/tareas/fichas(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/tareas/fichas(?:/)?$"
+    },
+    {
+      "page": "/tareas/programa",
+      "regex": "^/tareas/programa(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/tareas/programa(?:/)?$"
+    },
+    {
+      "page": "/usuarios",
+      "regex": "^/usuarios(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/usuarios(?:/)?$"
+    },
+    {
+      "page": "/usuarios/admin",
+      "regex": "^/usuarios/admin(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/usuarios/admin(?:/)?$"
+    },
+    {
+      "page": "/voluntarios",
+      "regex": "^/voluntarios(?:/)?$",
+      "routeKeys": {},
+      "namedRegex": "^/voluntarios(?:/)?$"
+    }
+  ],
+  "dataRoutes": [],
+  "rsc": {
+    "header": "rsc",
+    "varyHeader": "rsc, next-router-state-tree, next-router-prefetch, next-router-segment-prefetch",
+    "prefetchHeader": "next-router-prefetch",
+    "didPostponeHeader": "x-nextjs-postponed",
+    "contentTypeHeader": "text/x-component",
+    "suffix": ".rsc",
+    "prefetchSuffix": ".prefetch.rsc",
+    "prefetchSegmentHeader": "next-router-segment-prefetch",
+    "prefetchSegmentSuffix": ".segment.rsc",
+    "prefetchSegmentDirSuffix": ".segments"
+  },
+  "rewriteHeaders": {
+    "pathHeader": "x-nextjs-rewritten-path",
+    "queryHeader": "x-nextjs-rewritten-query"
+  }
+}

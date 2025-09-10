@@ -10,8 +10,7 @@ const patchSchema = z.object({
   telefono: z.string().optional().nullable(),
   congregacion: z.string().optional().nullable(),
   empresa: z.string().optional().nullable(),
-  a2: z.boolean().optional(),
-  trabajo_altura: z.boolean().optional(),
+  cargo: z.enum(["Supervisor", "Tecnico", "Contratista"]).optional(),
 });
 
 export async function GET(_req: Request, context: any) {
@@ -35,19 +34,20 @@ export async function GET(_req: Request, context: any) {
         telefono: doc.telefono ?? null,
         congregacion: doc.congregacion ?? null,
         empresa: doc.empresa ?? doc.congregacion ?? null,
-        a2: !!doc.a2,
-        trabajo_altura: !!doc.trabajo_altura,
+        cargo: doc.cargo || (doc.a2 ? "Supervisor" : "Tecnico"),
         createdAt: doc.createdAt,
       });
     }
 
     const row = db
       .prepare(
-        "SELECT id, short_id as shortId, nombre, apellido, telefono, congregacion, a2, trabajo_altura, datetime(created_at) as createdAt FROM volunteers WHERE id = ?"
+        "SELECT id, short_id as shortId, nombre, apellido, telefono, congregacion, cargo, a2, trabajo_altura, datetime(created_at) as createdAt FROM volunteers WHERE id = ?"
       )
-      .get(id);
+      .get(id) as any;
     if (!row) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
-    return NextResponse.json(row);
+    // map legacy a2 -> cargo if cargo is null
+    const cargo = row.cargo || (row.a2 ? "Supervisor" : "Tecnico");
+    return NextResponse.json({ ...row, cargo });
   } catch (e: any) {
     return NextResponse.json({ error: "Error consultando" }, { status: 500 });
   }
@@ -80,8 +80,7 @@ export async function PATCH(req: Request, context: any) {
         telefono: doc.telefono ?? null,
         congregacion: doc.congregacion ?? null,
         empresa: doc.empresa ?? doc.congregacion ?? null,
-        a2: !!doc.a2,
-        trabajo_altura: !!doc.trabajo_altura,
+        cargo: doc.cargo || (doc.a2 ? "Supervisor" : "Tecnico"),
         createdAt: doc.createdAt,
       });
     } else {
@@ -91,15 +90,15 @@ export async function PATCH(req: Request, context: any) {
       if (updates.telefono !== undefined) run("UPDATE volunteers SET telefono = ? WHERE id = ?", updates.telefono ?? null);
       if (updates.congregacion !== undefined) run("UPDATE volunteers SET congregacion = ? WHERE id = ?", updates.congregacion ?? null);
       if (updates.empresa !== undefined) run("UPDATE volunteers SET congregacion = ? WHERE id = ?", updates.empresa ?? null); // sqlite stores in congregacion column
-      if (updates.a2 !== undefined) run("UPDATE volunteers SET a2 = ? WHERE id = ?", updates.a2 ? 1 : 0);
-      if (updates.trabajo_altura !== undefined) run("UPDATE volunteers SET trabajo_altura = ? WHERE id = ?", updates.trabajo_altura ? 1 : 0);
+      if (updates.cargo !== undefined) run("UPDATE volunteers SET cargo = ? WHERE id = ?", updates.cargo);
       const row = db
         .prepare(
-          "SELECT id, short_id as shortId, nombre, apellido, telefono, congregacion, a2, trabajo_altura, datetime(created_at) as createdAt FROM volunteers WHERE id = ?"
+          "SELECT id, short_id as shortId, nombre, apellido, telefono, congregacion, cargo, a2, trabajo_altura, datetime(created_at) as createdAt FROM volunteers WHERE id = ?"
         )
-        .get(id);
+        .get(id) as any;
       if (!row) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
-      return NextResponse.json(row);
+      const cargo = row.cargo || (row.a2 ? "Supervisor" : "Tecnico");
+      return NextResponse.json({ ...row, cargo });
     }
   } catch (e: any) {
     return NextResponse.json({ error: "Error actualizando" }, { status: 500 });

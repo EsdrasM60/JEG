@@ -31,8 +31,7 @@ export default function VoluntariosPage() {
     telefono: "",
     congregacion: "",
     empresa: "",
-    a2: false,
-    trabajo_altura: false,
+    cargo: "Tecnico",
   });
   const [showCreate, setShowCreate] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
@@ -50,7 +49,7 @@ export default function VoluntariosPage() {
       body: JSON.stringify(body),
     });
     if (res.ok) {
-      setForm({ nombre: "", apellido: "", email: "", telefono: "", congregacion: "", empresa: "", a2: false, trabajo_altura: false });
+      setForm({ nombre: "", apellido: "", email: "", telefono: "", congregacion: "", empresa: "", cargo: "Tecnico" });
       setShowCreate(false);
       mutate();
     } else {
@@ -72,8 +71,7 @@ export default function VoluntariosPage() {
       telefono: v.telefono || "",
       congregacion: v.congregacion || "",
       empresa: v.empresa || v.congregacion || "",
-      a2: !!v.a2,
-      trabajo_altura: !!v.trabajo_altura,
+      cargo: v.cargo || "Tecnico",
     });
     setShowEdit(true);
   }
@@ -103,7 +101,7 @@ export default function VoluntariosPage() {
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Supervisores</h1>
+        <h1 className="text-3xl font-bold">Empleados</h1>
         <button
           className="inline-flex items-center gap-2 px-3 py-2 rounded bg-foreground text-background"
           onClick={() => setShowCreate(true)}
@@ -175,24 +173,20 @@ export default function VoluntariosPage() {
                     onChange={(e) => setForm({ ...form, empresa: e.target.value })}
                   />
                 </div>
-                <div className="sm:col-span-2 flex items-center gap-6 pt-2">
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={form.a2}
-                      onChange={(e) => setForm({ ...form, a2: e.target.checked })}
-                    />
-                    A2 lleno
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={form.trabajo_altura}
-                      onChange={(e) => setForm({ ...form, trabajo_altura: e.target.checked })}
-                    />
-                    Trabajo en altura
-                  </label>
+
+                <div>
+                  <label className="block text-sm mb-1">Cargo</label>
+                  <select
+                    className="w-full input"
+                    value={form.cargo}
+                    onChange={(e) => setForm({ ...form, cargo: e.target.value })}
+                  >
+                    <option value="Supervisor">Supervisor</option>
+                    <option value="Tecnico">Tecnico</option>
+                    <option value="Contratista">Contratista</option>
+                  </select>
                 </div>
+
                 <div className="sm:col-span-2 flex items-center gap-3 pt-2 justify-end">
                   <button type="button" className="btn" onClick={() => setShowCreate(false)}>Cancelar</button>
                   <button type="submit" className="btn btn-primary">Guardar</button>
@@ -257,24 +251,20 @@ export default function VoluntariosPage() {
                     onChange={(e) => setEditForm({ ...editForm, empresa: e.target.value })}
                   />
                 </div>
-                <div className="sm:col-span-2 flex items-center gap-6 pt-2">
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!!editForm.a2}
-                      onChange={(e) => setEditForm({ ...editForm, a2: e.target.checked })}
-                    />
-                    A2 lleno
-                  </label>
-                  <label className="flex items-center gap-2">
-                    <input
-                      type="checkbox"
-                      checked={!!editForm.trabajo_altura}
-                      onChange={(e) => setEditForm({ ...editForm, trabajo_altura: e.target.checked })}
-                    />
-                    Trabajo en altura
-                  </label>
+
+                <div>
+                  <label className="block text-sm mb-1">Cargo</label>
+                  <select
+                    className="w-full input"
+                    value={editForm.cargo || "Tecnico"}
+                    onChange={(e) => setEditForm({ ...editForm, cargo: e.target.value })}
+                  >
+                    <option value="Supervisor">Supervisor</option>
+                    <option value="Tecnico">Tecnico</option>
+                    <option value="Contratista">Contratista</option>
+                  </select>
                 </div>
+
                 <div className="sm:col-span-2 flex items-center gap-3 pt-2 justify-end">
                   <button type="button" className="btn" onClick={() => { setShowEdit(false); setEditing(null); }}>Cancelar</button>
                   <button type="submit" className="btn btn-primary">Guardar</button>
@@ -295,8 +285,7 @@ export default function VoluntariosPage() {
               <th>Correo</th>
               <th>Teléfono</th>
               <th>Empresa</th>
-              <th>A2</th>
-              <th>Altura</th>
+              <th>Cargo</th>
               <th></th>
             </tr>
           </thead>
@@ -314,8 +303,7 @@ export default function VoluntariosPage() {
                 <td>{v.email || "—"}</td>
                 <td>{v.telefono || "—"}</td>
                 <td>{v.empresa || v.congregacion || "—"}</td>
-                <td>{v.a2 ? "Sí" : "No"}</td>
-                <td>{v.trabajo_altura ? "Sí" : "No"}</td>
+                <td>{v.cargo || "—"}</td>
                 <td className="text-right whitespace-nowrap py-2">
                   <button
                     className="p-1 mr-2 border rounded inline-flex items-center justify-center hover:bg-muted"

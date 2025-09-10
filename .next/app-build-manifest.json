@@ -1,9 +1,3 @@
 {
-  "pages": {
-    "/api/tareas/programa/route": [
-      "static/chunks/webpack.js",
-      "static/chunks/main-app.js",
-      "static/chunks/app/api/tareas/programa/route.js"
-    ]
-  }
+  "pages": {}
 }

@@ -8,8 +8,7 @@ const VolunteerSchema = new Schema(
     telefono: { type: String },
     congregacion: { type: String },
     empresa: { type: String }, // nueva propiedad compatible
-    a2: { type: Boolean, default: false },
-    trabajo_altura: { type: Boolean, default: false },
+    cargo: { type: String, enum: ["Supervisor", "Tecnico", "Contratista"], default: "Tecnico" },
     created_by: { type: String },
     shortId: { type: String, index: true, unique: true },
   },
