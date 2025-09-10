@@ -57,7 +57,7 @@ export async function GET() {
       "SELECT id, short_id as shortId, nombre, apellido, email, telefono, congregacion, a2, trabajo_altura, datetime(created_at) as createdAt FROM volunteers ORDER BY lower(apellido) ASC, lower(nombre) ASC"
     )
     .all();
-  return NextResponse.json(rows.map(r => ({...r, empresa: r.congregacion}))); // sqlite stores in congregacion
+  return NextResponse.json(rows.map((r: any) => ({ ...(r as any), empresa: r.congregacion }))); // sqlite stores in congregacion
 }
 
 export async function POST(req: Request) {

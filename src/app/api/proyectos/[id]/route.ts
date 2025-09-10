@@ -12,19 +12,12 @@ export async function PATCH(req: Request, context: any) {
     // Preparar operaciones sobre evidencias (no ejecutar todavía)
     let evidenciasToAdd = null;
     if (Array.isArray(body.addEvidencias) && body.addEvidencias.length > 0) {
-      let actorFromSession = undefined;
-      try {
-        const { auth } = await import("@/lib/auth");
-        const session = await auth();
-        if (session && (session as any).user && (session as any).user.email) actorFromSession = (session as any).user.email;
-      } catch (e) {}
-
       evidenciasToAdd = body.addEvidencias.map((e: any) => ({
         mediaId: e.mediaId,
         thumbId: e.thumbId || undefined,
         titulo: e.titulo || undefined,
         puntos: Array.isArray(e.puntos) ? e.puntos : [],
-        created_by: actorFromSession || body.actor || undefined,
+        created_by: body.actor || undefined,
         createdAt: new Date(),
       }));
     }
@@ -43,7 +36,8 @@ export async function PATCH(req: Request, context: any) {
         return NextResponse.json({ error: "No se encontraron evidencias para eliminar" }, { status: 400 });
       }
 
-      const doc = await Project.findByIdAndUpdate(
+      let doc: any = null;
+      doc = await Project.findByIdAndUpdate(
         id,
         { $pull: { evidencias: { mediaId: { $in: evidenciasAEliminar } } } },
         { new: true }
@@ -104,6 +98,11 @@ export async function PATCH(req: Request, context: any) {
         createdAt: entry.createdAt ? new Date(entry.createdAt) : new Date()
       }));
     }
+
+    // Ejecutar actualizaciones normales
+    let doc: any = null;
+    doc = await Project.findByIdAndUpdate(id, updates, { new: true }).lean();
+    if (!doc) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
 
     // Si hay evidencias que agregar, ejecutar esa operación también
     if (evidenciasToAdd && evidenciasToAdd.length > 0) {

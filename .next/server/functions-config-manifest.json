@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "functions": {
+    "/api/actividad/[id]/foto": {},
+    "/api/admin/reset": {},
+    "/api/media/list": {},
+    "/api/images/[id]": {},
+    "/api/media/notes": {},
+    "/api/uploads": {}
+  }
+}

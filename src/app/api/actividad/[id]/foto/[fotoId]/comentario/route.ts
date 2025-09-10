@@ -17,7 +17,9 @@ export async function POST(req: Request, context: any) {
   const foto = a.fotos.id(params.fotoId);
   if (!foto) return NextResponse.json({ error: "Foto no encontrada" }, { status: 404 });
 
-  foto.comentarios.push({ authorId: session.user?.id ?? session.user?.email, text: body.text, date: new Date() });
+  // session.user may not have a typed 'id' property; prefer email as fallback
+  const authorId = (session.user as any)?.id ?? session.user?.email ?? null;
+  foto.comentarios.push({ authorId, text: body.text, date: new Date() });
   await a.save();
   return NextResponse.json({ ok: true });
 }

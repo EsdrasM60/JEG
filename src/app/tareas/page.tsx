@@ -302,7 +302,7 @@ export default function TareasPage() {
                 </button>
               </div>
               {items.length === 0 ? (
-                <div className="text-sm text-[color:var(--muted)]">Sin registros en {year}.</div>
+                <div className="text-sm text-[color:var(--muted)]">Sin registros.</div>
               ) : (
                 <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
                   {items.map((p) => {

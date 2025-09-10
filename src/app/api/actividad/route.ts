@@ -42,9 +42,11 @@ export async function POST(req: Request) {
   try {
     await connectMongo();
     const { default: Actividad } = await import("@/models/Actividad");
+    // obtener userId de forma segura (session.user puede no tener id en el tipo)
+    const userId = (session as any).user?.id ?? (session as any).user?.email ?? "unknown";
     const doc: any = await Actividad.create({
       ...data,
-      supervisorId: session.user?.id ?? session.user?.email ?? "unknown",
+      supervisorId: userId,
       fecha: data.fecha ? new Date(data.fecha) : new Date(),
     });
     return NextResponse.json({ id: String(doc._id) });
