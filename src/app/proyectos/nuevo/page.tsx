@@ -499,6 +499,45 @@ export default function NuevoProyectoPage() {
                       ))}
                     </select>
                     <p className="text-xs text-[color:var(--muted)] mt-1">Si no eliges plantilla, se generará usando el nombre base.</p>
+
+                    {/* Lista de plantillas clicables: al hacer click se pide cuántas repeticiones (n) y se inserta */}
+                    {Array.isArray(checklistTemplates) && checklistTemplates.length > 0 && (
+                      <div className="mt-3 space-y-2">
+                        {checklistTemplates.map((tpl: any) => (
+                          <button
+                            key={tpl._id}
+                            type="button"
+                            className="w-full text-left p-3 border rounded hover:bg-gray-50"
+                            onClick={() => {
+                              try {
+                                const raw = window.prompt(`¿Cuántas veces quieres insertar la plantilla "${tpl.title}"?`, '1');
+                                if (!raw) return;
+                                let n = parseInt(raw as string, 10);
+                                if (isNaN(n) || n < 1) n = 1;
+                                n = Math.min(100, n);
+                                const itemsToAdd: Array<{ text: string; done: boolean }> = [];
+                                if (Array.isArray(tpl.items) && tpl.items.length > 0) {
+                                  for (let repeat = 0; repeat < n; repeat++) {
+                                    tpl.items.forEach((it: any, idx: number) => {
+                                      const baseText = typeof it === 'string' ? it : String(it?.text || '');
+                                      itemsToAdd.push({ text: baseText, done: false });
+                                    });
+                                  }
+                                }
+                                setCreateChecklistList(prev => [...prev, ...itemsToAdd]);
+                                setShowTemplateModal(false);
+                                setSelectedTemplateId(null);
+                              } catch (err) {
+                                // ignore
+                              }
+                            }}
+                          >
+                            <div className="font-medium">{tpl.title}</div>
+                            <div className="text-sm text-[color:var(--muted)]">{tpl.description || tpl.subtitle || ''}</div>
+                          </button>
+                        ))}
+                      </div>
+                    )}
                   </div>
 
                   <div>
