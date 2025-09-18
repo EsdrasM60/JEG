@@ -42,6 +42,12 @@ export default function NuevoProyectoPage() {
   const [renameBase, setRenameBase] = useState('Tarea');
   const [insertingTemplateId, setInsertingTemplateId] = useState<string | null>(null);
   const [insertingTemplateCount, setInsertingTemplateCount] = useState<number>(1);
+  const [previewItems, setPreviewItems] = useState<Array<{ text: string; done: boolean }>>([]);
+  const [preparedTemplateId, setPreparedTemplateId] = useState<string | null>(null);
+
+  // Estado para edición inline de la vista previa
+  const [editingPreviewIndex, setEditingPreviewIndex] = useState<number | null>(null);
+  const [editingPreviewValue, setEditingPreviewValue] = useState<string>("");
 
   const fileRefCreate = useRef<HTMLInputElement>(null);
 
@@ -162,6 +168,24 @@ export default function NuevoProyectoPage() {
     { key: "EN_PAUSA", label: "En pausa", icon: "⏸️", color: "text-yellow-600" },
     { key: "COMPLETADO", label: "Completado", icon: "✅", color: "text-green-600" },
   ] as const;
+
+  function startEditPreview(idx: number) {
+    setEditingPreviewIndex(idx);
+    setEditingPreviewValue(previewItems[idx]?.text || "");
+  }
+
+  function commitEditPreview() {
+    if (editingPreviewIndex === null) return;
+    const idx = editingPreviewIndex;
+    setPreviewItems(prev => prev.map((it, i) => i === idx ? { ...it, text: editingPreviewValue } : it));
+    setEditingPreviewIndex(null);
+    setEditingPreviewValue("");
+  }
+
+  function cancelEditPreview() {
+    setEditingPreviewIndex(null);
+    setEditingPreviewValue("");
+  }
 
   return (
     <div className="space-y-6">
@@ -502,6 +526,48 @@ export default function NuevoProyectoPage() {
                     </select>
                     <p className="text-xs text-[color:var(--muted)] mt-1">Si no eliges plantilla, se generará usando el nombre base.</p>
 
+                    {/* Control: preparar inserción antes de agregar */}
+                    <div className="mt-3 flex items-center gap-2">
+                      <label htmlFor="selectedCount" className="text-sm">Cantidad</label>
+                      <input
+                        id="selectedCount"
+                        type="number"
+                        min={1}
+                        max={100}
+                        value={templateCount}
+                        onChange={(e) => setTemplateCount(Number(e.target.value || 1))}
+                        className="w-24 input"
+                        title="Número de repeticiones"
+                      />
+                      <button
+                        type="button"
+                        className="btn"
+                        onClick={() => {
+                          const count = Math.max(1, Math.min(100, Number(templateCount || 1)));
+                          const tpl = Array.isArray(checklistTemplates) ? checklistTemplates.find(t => t._id === selectedTemplateId) : null;
+                          const items: Array<{ text: string; done: boolean }> = [];
+                          if (tpl && Array.isArray(tpl.items) && tpl.items.length > 0) {
+                            for (let n = 0; n < count; n++) {
+                              tpl.items.forEach((it: any, idx: number) => {
+                                const baseText = typeof it === 'string' ? it : String(it?.text || '');
+                                const text = renameItems ? `${renameBase} ${n + 1} - ${idx + 1}` : baseText;
+                                items.push({ text, done: false });
+                              });
+                            }
+                          } else {
+                            for (let i = 0; i < count; i++) items.push({ text: `${renameBase} ${i + 1}`, done: false });
+                          }
+                          setPreviewItems(items);
+                          setPreparedTemplateId(selectedTemplateId);
+                        }}
+                      >
+                        Preparar inserción
+                      </button>
+                      {previewItems.length > 0 && preparedTemplateId === selectedTemplateId && (
+                        <button type="button" className="btn btn-ghost" onClick={() => { setPreviewItems([]); setPreparedTemplateId(null); }}>Borrar vista previa</button>
+                      )}
+                    </div>
+
                     {/* Lista de plantillas clicables: al hacer click se pide cuántas repeticiones (n) y se inserta */}
                     {Array.isArray(checklistTemplates) && checklistTemplates.length > 0 && (
                       <div className="mt-3 space-y-2">
@@ -606,22 +672,23 @@ export default function NuevoProyectoPage() {
                     type="button"
                     className="btn btn-primary"
                     onClick={() => {
-                      const count = Math.max(1, Math.min(100, Number(templateCount || 1)));
-                      const template = Array.isArray(checklistTemplates) ? checklistTemplates.find(t => t._id === selectedTemplateId) : null;
+                      // If a preview was prepared for the current template, use it
                       let itemsToAdd: Array<{ text: string; done: boolean }> = [];
-                      if (template && Array.isArray(template.items) && template.items.length > 0) {
-                        // replicate template items 'count' times
-                        for (let n = 0; n < count; n++) {
-                          template.items.forEach((it: any, idx: number) => {
-                            const baseText = typeof it === 'string' ? it : String(it?.text || '');
-                            const text = renameItems ? `${renameBase} ${n + 1} - ${idx + 1}` : baseText;
-                            itemsToAdd.push({ text, done: false });
-                          });
-                        }
+                      if (previewItems.length > 0 && preparedTemplateId === selectedTemplateId) {
+                        itemsToAdd = previewItems;
                       } else {
-                        // generate using renameBase
-                        for (let i = 0; i < count; i++) {
-                          itemsToAdd.push({ text: `${renameBase} ${i + 1}`, done: false });
+                        const count = Math.max(1, Math.min(100, Number(templateCount || 1)));
+                        const template = Array.isArray(checklistTemplates) ? checklistTemplates.find(t => t._id === selectedTemplateId) : null;
+                        if (template && Array.isArray(template.items) && template.items.length > 0) {
+                          for (let n = 0; n < count; n++) {
+                            template.items.forEach((it: any, idx: number) => {
+                              const baseText = typeof it === 'string' ? it : String(it?.text || '');
+                              const text = renameItems ? `${renameBase} ${n + 1} - ${idx + 1}` : baseText;
+                              itemsToAdd.push({ text, done: false });
+                            });
+                          }
+                        } else {
+                          for (let i = 0; i < count; i++) itemsToAdd.push({ text: `${renameBase} ${i + 1}`, done: false });
                         }
                       }
 
@@ -631,6 +698,8 @@ export default function NuevoProyectoPage() {
                       setRenameItems(false);
                       setRenameBase('Tarea');
                       setTemplateCount(1);
+                      setPreviewItems([]);
+                      setPreparedTemplateId(null);
                     }}
                   >
                     Agregar
@@ -639,72 +708,42 @@ export default function NuevoProyectoPage() {
               </div>
             </div>
           )}
-
-          <div className="space-y-3">
-            {createChecklistList.map((item, idx) => (
-              <div key={`${item.text}-${idx}`} className="flex items-center gap-3 p-2 bg-gray-50 rounded">
-                <input
-                  type="checkbox"
-                  checked={!!item.done}
-                  onChange={(e) => {
-                    const checked = e.currentTarget.checked;
-                    setCreateChecklistList(prev => prev.map((it, i) =>
-                      i === idx ? { ...it, done: checked } : it
-                    ));
-                  }}
-                  aria-label={`Marcar "${item.text}" como completado`}
-                  title={`Marcar "${item.text}" como completado`}
-                />
-                <span className={`flex-1 text-sm ${item.done ? "line-through opacity-70" : ""}`}>
-                  {item.text}
-                </span>
-                <button 
-                  type="button" 
-                  onClick={() => setCreateChecklistList(prev => prev.filter((_, i) => i !== idx))} 
-                  className="text-red-600 hover:text-red-800"
-                >
-                  ✕
-                </button>
-              </div>
-            ))}
-            
-            <div className="flex gap-2">
-              <input 
-                type="text" 
-                value={createChecklistInput}
-                onChange={(e) => setCreateChecklistInput(e.target.value)}
-                className="flex-1 input"
-                placeholder="Ej. Revisar bomba de agua"
-                aria-label="Nueva tarea"
-                title="Nueva tarea"
-                  onKeyPress={(e) => {
-                    if (e.key === "Enter") {
-                      e.preventDefault();
-                      const t = createChecklistInput.trim(); 
-                      if (!t) return; 
-                      setCreateChecklistList(prev => [...prev, { text: t, done: false }]); 
-                      setCreateChecklistInput("");
-                    }
-                  }}
-                />
-              <button 
-                type="button" 
-                className="btn" 
-                onClick={() => { 
-                  const t = createChecklistInput.trim(); 
-                  if (!t) return; 
-                  setCreateChecklistList(prev => [...prev, { text: t, done: false }]); 
-                  setCreateChecklistInput(""); 
-                }}
-              >
-                Agregar
-              </button>
+          
+          {/* Preview area: show prepared items if any */}
+          {previewItems.length > 0 && (
+            <div className="mt-3 p-3 border rounded bg-gray-50">
+              <div className="text-sm font-medium mb-2">Vista previa (mostrando primeros 20 ítems) — clic para editar</div>
+              <ul className="text-sm list-decimal pl-5 max-h-44 overflow-auto">
+                {previewItems.slice(0, 20).map((it, i) => (
+                  <li key={i} className="py-1">
+                    {editingPreviewIndex === i ? (
+                      <input
+                        autoFocus
+                        value={editingPreviewValue}
+                        onChange={(e) => setEditingPreviewValue(e.target.value)}
+                        onBlur={() => commitEditPreview()}
+                        onKeyDown={(e) => {
+                          if (e.key === "Enter") {
+                            e.preventDefault();
+                            commitEditPreview();
+                          } else if (e.key === "Escape") {
+                            e.preventDefault();
+                            cancelEditPreview();
+                          }
+                        }}
+                        className="w-full input text-sm"
+                        aria-label={`Editar ítem ${i + 1}`}
+                      />
+                    ) : (
+                      <button type="button" className="text-left w-full" onClick={() => startEditPreview(i)}>
+                        {it.text}
+                      </button>
+                    )}
+                  </li>
+                ))}
+              </ul>
             </div>
-            
-            <div className="mt-4 text-sm text-[color:var(--muted)]">
-              💡 También puedes agregar categorías específicas después de crear el proyecto usando plantillas predefinidas como "Obra Gris", "Alambrado", etc.
-            </div>
-          </div>
+          )}
         </div>
 
         {/* Botones de acción */}

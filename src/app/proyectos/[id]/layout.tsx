@@ -60,6 +60,11 @@ export default function ProjectLayout({ children }: { children: React.ReactNode 
       icon: "📝"
     },
     { 
+      href: `/proyectos/${projectId}/adicionales`, 
+      label: "Adicionales",
+      icon: "➕"
+    },
+    { 
       href: `/proyectos/${projectId}/asignaciones`, 
       label: "Asignaciones",
       icon: "👥"

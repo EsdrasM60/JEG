@@ -77,10 +77,17 @@ const AdicionalSchema = new Schema(
     title: { type: String, required: true },
     description: { type: String },
     cost: { type: Number, default: 0 },
-    status: { type: String, enum: ["PENDIENTE", "APROBADO", "RECHAZADO"], default: "PENDIENTE" },
+    status: { type: String, enum: ["PENDIENTE", "APROBADO", "DESCARTADO"], default: "PENDIENTE" },
     createdBy: { type: String },
-    approvedBy: { type: String },
     createdAt: { type: Date, default: Date.now },
+    fecha: { type: Date, required: false },
+    responsableId: { type: Schema.Types.ObjectId, ref: "Volunteer", required: false },
+    fotos: [{
+      mediaId: { type: Schema.Types.ObjectId, required: true },
+      thumbId: { type: Schema.Types.ObjectId, required: false },
+      titulo: { type: String }
+    }],
+    approvedBy: { type: String },
   },
   { _id: true }
 );

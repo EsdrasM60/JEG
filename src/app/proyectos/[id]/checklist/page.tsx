@@ -68,6 +68,11 @@ export default function ProjectChecklistPage() {
   const [editingCategory, setEditingCategory] = useState<string | null>(null);
   const [editingCategoryTitle, setEditingCategoryTitle] = useState("");
 
+  // New: controls to insert templates multiple times and rename
+  const [templateCount, setTemplateCount] = useState<number>(1);
+  const [renameItems, setRenameItems] = useState<boolean>(false);
+  const [renameBase, setRenameBase] = useState<string>("Nueva categoría");
+
   // Estados para crear plantilla
   const [newTemplate, setNewTemplate] = useState({
     title: "",
@@ -163,6 +168,45 @@ export default function ProjectChecklistPage() {
         body: JSON.stringify({ 
           ...template, 
           usageCount: (template as any).usageCount + 1 
+        })
+      });
+    } catch (error) {
+      console.warn("Error actualizando contador de plantilla:", error);
+    }
+
+    setShowTemplates(false);
+  }
+
+  // New: add multiple categories from a template
+  async function addCategoriesFromTemplate(template: Template, count: number, rename: boolean, baseName: string) {
+    if (!template || count < 1) return;
+
+    const addedCategories = [] as any[];
+    for (let n = 0; n < count; n++) {
+      const title = rename ? `${baseName} ${n + 1}` : `${template.title}${count > 1 ? ` ${n + 1}` : ""}`;
+      const newCategory = {
+        title,
+        items: template.items
+          .sort((a, b) => a.order - b.order)
+          .map(item => ({ text: item.text, done: false })),
+        isCollapsed: false,
+        order: checklistCategories.length + addedCategories.length
+      };
+      addedCategories.push(newCategory);
+    }
+
+    await updateProject({
+      checklistCategories: [...checklistCategories, ...addedCategories]
+    });
+
+    // update usage count once
+    try {
+      await fetch(`/api/checklist-templates/${template._id}`, {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ 
+          ...template, 
+          usageCount: (template as any).usageCount + count 
         })
       });
     } catch (error) {
@@ -544,43 +588,85 @@ export default function ProjectChecklistPage() {
           <div className="bg-white rounded-lg max-w-4xl w-full max-h-[80vh] overflow-hidden flex flex-col">
             <div className="p-6 border-b">
               <h3 className="text-lg font-semibold">Seleccionar plantilla</h3>
-              <p className="text-sm text-[color:var(--muted)] mt-1">
-                Elige una plantilla predefinida para agregar al proyecto
-              </p>
+              <p className="text-sm text-[color:var(--muted)] mt-1">Elige una plantilla predefinida para agregar al proyecto</p>
             </div>
-            
-            <div className="flex-1 overflow-y-auto p-6">
-              {Object.entries(templatesByCategory).map(([categoryName, categoryTemplates]) => (
-                <div key={categoryName} className="mb-6">
-                  <h4 className="font-medium text-blue-800 mb-3">{categoryName}</h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    {categoryTemplates.map((template) => (
-                      <div 
-                        key={template._id} 
-                        className="border border-[color:var(--border)] rounded-lg p-4 hover:border-blue-300 cursor-pointer"
-                        onClick={() => addCategoryFromTemplate(template)}
-                      >
-                        <h5 className="font-medium mb-2">{template.title}</h5>
-                        <p className="text-sm text-[color:var(--muted)] mb-3">
-                          {template.description}
-                        </p>
-                        <div className="text-xs text-blue-600">
-                          {template.items.length} tareas incluidas
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+
+            <div className="p-6 flex gap-6">
+              <div className="w-72">
+                {/* Global controls for insert repetitions and rename */}
+                <div className="mb-4">
+                  <label className="block text-sm font-medium mb-1">¿Cuántas veces insertar?</label>
+                  <input
+                    type="number"
+                    min={1}
+                    max={100}
+                    value={templateCount}
+                    onChange={(e) => setTemplateCount(Number(e.target.value || 1))}
+                    className="w-28 input"
+                    title="Número de repeticiones"
+                    aria-label="Número de repeticiones global"
+                    placeholder="1"
+                  />
                 </div>
-              ))}
+
+                <div className="flex items-center gap-2 mb-3">
+                  <input id="renameToggleProj" type="checkbox" checked={renameItems} onChange={(e) => setRenameItems(e.target.checked)} />
+                  <label htmlFor="renameToggleProj" className="text-sm">Renombrar categorías</label>
+                </div>
+
+                {renameItems && (
+                  <div className="mb-3">
+                    <label className="block text-sm font-medium mb-1">Nombre base</label>
+                    <input type="text" value={renameBase} onChange={(e) => setRenameBase(e.target.value)} className="w-full input" placeholder="Ej. Inspección bomba" title="Nombre base para renombrar categorías" />
+                    <p className="text-xs text-[color:var(--muted)] mt-1">Si está activado, las categorías se crearán con este nombre + índice.</p>
+                  </div>
+                )}
+
+                <div className="text-xs text-[color:var(--muted)]">Plantillas disponibles</div>
+                <div className="mt-3 space-y-2 overflow-y-auto max-h-[56vh]">
+                  {templates?.map((template) => (
+                    <div key={template._id} className="p-3 border rounded flex items-center justify-between">
+                      <div>
+                        <div className="font-medium">{template.title}</div>
+                        <div className="text-sm text-[color:var(--muted)]">{template.description}</div>
+                      </div>
+                      <div className="ml-4">
+                        <button
+                          type="button"
+                          className="btn btn-primary"
+                          onClick={() => addCategoriesFromTemplate(template, Math.max(1, Math.min(100, templateCount)), renameItems, renameBase)}
+                          title={`Insertar plantilla ${template.title}`}
+                          aria-label={`Insertar plantilla ${template.title}`}
+                        >
+                          Insertar
+                        </button>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="flex-1 overflow-y-auto p-4">
+                {/* Preview area grouped by category */}
+                {Object.entries(templatesByCategory).map(([categoryName, categoryTemplates]) => (
+                  <div key={categoryName} className="mb-6">
+                    <h4 className="font-medium text-blue-800 mb-3">{categoryName}</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      {categoryTemplates.map((template) => (
+                        <div key={template._id} className="border border-[color:var(--border)] rounded-lg p-4">
+                          <h5 className="font-medium mb-2">{template.title}</h5>
+                          <p className="text-sm text-[color:var(--muted)] mb-3">{template.description}</p>
+                          <div className="text-xs text-blue-600">{template.items.length} tareas incluidas</div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
             </div>
-            
-            <div className="p-6 border-t">
-              <button
-                onClick={() => setShowTemplates(false)}
-                className="btn btn-ghost"
-              >
-                Cerrar
-              </button>
+
+            <div className="p-6 border-t flex justify-end gap-2">
+              <button onClick={() => setShowTemplates(false)} className="btn btn-ghost">Cerrar</button>
             </div>
           </div>
         </div>
