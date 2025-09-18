@@ -14,7 +14,6 @@ const baseLinks = [
   { href: "/dashboard", label: "🏠 Dashboard" },
   { href: "/voluntarios", label: "🤝 Supervisores" },
   { href: "/tareas", label: "🛠️ Tareas" },
-  { href: "/plan-semanal", label: "📅 Plan semanal" },
   { href: "/usuarios", label: "👥 Usuarios" },
   { href: "/proyectos", label: "📁 Proyectos" },
   { href: "/actividad", label: "📰 Actividad" },

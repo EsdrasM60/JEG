@@ -2,7 +2,7 @@
 
 import { useParams } from "next/navigation";
 import useSWR from "swr";
-import { useState, useMemo } from "react";
+import { useState } from "react";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -58,6 +58,8 @@ export default function ProjectChecklistPage() {
     }
   );
 
+  const { data: templates } = useSWR<Template[]>("/api/checklist-templates", fetcher);
+
   const [newItemText, setNewItemText] = useState("");
   const [newCategoryTitle, setNewCategoryTitle] = useState("");
   const [showAddCategory, setShowAddCategory] = useState(false);
@@ -74,23 +76,13 @@ export default function ProjectChecklistPage() {
     items: [""]
   });
 
-  // SWR para templates - solo carga cuando sea necesario
-  const { data: templates, mutate: mutateTemplates } = useSWR<Template[]>(
-    showTemplates || showCreateTemplate ? "/api/checklist-templates" : null,
-    fetcher,
-    {
-      revalidateOnFocus: false,
-      revalidateOnReconnect: false,
-      refreshInterval: 0
-    }
-  );
-
   // Migrar checklist legacy a categorías si es necesario
   const checklistCategories = project?.checklistCategories || [];
   const hasLegacyChecklist = project?.checklist && project.checklist.length > 0 && checklistCategories.length === 0;
 
   async function updateProject(updates: any) {
     try {
+      console.log("Enviando actualización:", updates);
       const res = await fetch(`/api/proyectos/${projectId}`, {
         method: "PATCH",
         headers: { "content-type": "application/json" },
@@ -99,15 +91,18 @@ export default function ProjectChecklistPage() {
 
       if (!res.ok) {
         const errorText = await res.text();
+        console.error("Error de respuesta:", errorText);
         throw new Error(errorText);
       }
       
       const responseData = await res.json();
+      console.log("Respuesta del servidor:", responseData);
       
-      // Solo una mutación optimista - mucho más rápido
-      await mutate(responseData, false);
+      await mutate(responseData, false); // Actualiza los datos localmente
+      await mutate(); // Revalida desde el servidor
+      console.log("Mutación completada");
     } catch (error: any) {
-      console.error("Error actualizando proyecto:", error);
+      console.error("Error completo:", error);
       alert(`Error actualizando proyecto: ${error?.message || error}`);
     }
   }
@@ -237,11 +232,6 @@ export default function ProjectChecklistPage() {
         items: [""]
       });
       setShowCreateTemplate(false);
-      
-      // Revalidar templates para incluir el nuevo
-      if (mutateTemplates) {
-        mutateTemplates();
-      }
       
       alert("Plantilla creada exitosamente");
     } catch (error: any) {

@@ -4,6 +4,7 @@ import { usePathname } from "next/navigation";
 import { useSession } from "next-auth/react";
 import { useEffect, useState } from "react";
 import { Sidebar } from "@/components/Sidebar";
+import NotificationsDropdown from "@/components/NotificationsDropdown";
 
 export function Navbar() {
 	const pathname = usePathname();
@@ -24,8 +25,6 @@ export function Navbar() {
 					className="p-2 sm:p-2.5 rounded border border-white/30 inline-flex items-center justify-center hover:bg-white/10 touch-manipulation"
 					onClick={() => setOpen((v) => !v)}
 					aria-label={open ? "Cerrar menú" : "Abrir menú"}
-					aria-controls="app-sidebar"
-					aria-expanded={open}
 				>
 					<span className="relative block w-6 h-4 text-white">
 						<span
@@ -53,6 +52,7 @@ export function Navbar() {
 					<span className="sr-only">JEG Soluciones</span>
 				</Link>
 				<div className="ml-auto flex items-center gap-2 sm:gap-3 text-xs sm:text-sm">
+					<NotificationsDropdown />
 					{user.name ? (
 						<span className="hidden sm:inline text-white/90">
 							{user.name}

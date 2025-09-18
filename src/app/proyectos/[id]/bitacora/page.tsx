@@ -108,8 +108,8 @@ export default function ProjectBitacoraPage() {
       const bitacoraEntry = {
         fecha: newEntry.fecha,
         notas: newEntry.notas.trim(),
-        fotos: uploadedFotos.map(f => ({ ...f, enEvidencia: !!f.enEvidencia })),
-        createdBy: undefined,
+        fotos: uploadedFotos,
+        createdBy: "current-user", // TODO: obtener del contexto de auth
         createdAt: new Date().toISOString()
       };
 

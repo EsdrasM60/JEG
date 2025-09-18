@@ -56,6 +56,14 @@ export async function POST(_req: Request, context: any) {
         }
       } catch {}
 
+      // Resolve any related notification
+      try {
+        const { default: Notification } = await import("@/models/Notification");
+        await Notification.updateMany({ 'meta.userId': user._id, type: 'USER_REGISTRATION' }, { resolved: true, read: true });
+      } catch (nerr) {
+        // ignore
+      }
+
       // Notificar al usuario
       try {
         if (process.env.SMTP_HOST && process.env.SMTP_USER && (process.env.SMTP_FROM || process.env.SMTP_USER)) {

@@ -41,7 +41,7 @@ export async function POST(req: Request) {
       const { default: User } = await import("@/models/User");
       const exists = await User.findOne({ email }).lean();
       if (exists) return NextResponse.json({ error: "El correo ya está registrado" }, { status: 409 });
-      await User.create({ name, email, passwordHash: password_hash, role: "VOLUNTARIO", emailVerified: false });
+      const user = await User.create({ name, email, passwordHash: password_hash, role: "VOLUNTARIO", emailVerified: false });
 
       // Crear voluntario en paralelo si no existe
       try {
@@ -58,6 +58,22 @@ export async function POST(req: Request) {
           await Volunteer.create({ nombre, apellido, email, shortId });
         }
       } catch {}
+
+      // Create in-app notification for admins
+      try {
+        const { default: Notification } = await import("@/models/Notification");
+        await Notification.create({
+          type: "USER_REGISTRATION",
+          message: `Nuevo registro pendiente: ${name} <${email}>`,
+          level: "warning",
+          meta: { userId: user._id, email },
+          createdBy: user._id,
+          targetRoles: ["ADMIN", "COORDINADOR"],
+        });
+      } catch (nerr) {
+        // ignore notification errors
+        console.error("Notification create error:", nerr);
+      }
     } else {
       const id = crypto.randomUUID();
       db.prepare(
@@ -76,6 +92,8 @@ export async function POST(req: Request) {
           ).run(vid, nombre, apellido, email, shortId);
         }
       } catch {}
+
+      // For SQLite case we don't have notifications table yet; skipping in-app notification
     }
   } catch (e: any) {
     if (String(e?.message || e).includes("UNIQUE")) {
