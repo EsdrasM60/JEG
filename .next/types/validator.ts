@@ -89,6 +89,18 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies AppPageConfig<"/plan-semanal">
 }
 
+// Validate ../../src/app/proyectos/[id]/adicionales/[aid]/page.tsx
+{
+  const handler = {} as typeof import("../../src/app/proyectos/[id]/adicionales/[aid]/page.js")
+  handler satisfies AppPageConfig<"/proyectos/[id]/adicionales/[aid]">
+}
+
+// Validate ../../src/app/proyectos/[id]/adicionales/page.tsx
+{
+  const handler = {} as typeof import("../../src/app/proyectos/[id]/adicionales/page.js")
+  handler satisfies AppPageConfig<"/proyectos/[id]/adicionales">
+}
+
 // Validate ../../src/app/proyectos/[id]/asignaciones/page.tsx
 {
   const handler = {} as typeof import("../../src/app/proyectos/[id]/asignaciones/page.js")
@@ -341,6 +353,12 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
   handler satisfies RouteHandlerConfig<"/api/media/notes">
 }
 
+// Validate ../../src/app/api/notifications/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/notifications/route.js")
+  handler satisfies RouteHandlerConfig<"/api/notifications">
+}
+
 // Validate ../../src/app/api/plan-semanal/asignar/route.ts
 {
   const handler = {} as typeof import("../../src/app/api/plan-semanal/asignar/route.js")
@@ -351,6 +369,18 @@ type RouteHandlerConfig<Route extends AppRouteHandlerRoutes = AppRouteHandlerRou
 {
   const handler = {} as typeof import("../../src/app/api/plan-semanal/route.js")
   handler satisfies RouteHandlerConfig<"/api/plan-semanal">
+}
+
+// Validate ../../src/app/api/projects/[id]/adicionales/[aid]/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/projects/[id]/adicionales/[aid]/route.js")
+  handler satisfies RouteHandlerConfig<"/api/projects/[id]/adicionales/[aid]">
+}
+
+// Validate ../../src/app/api/projects/[id]/adicionales/route.ts
+{
+  const handler = {} as typeof import("../../src/app/api/projects/[id]/adicionales/route.js")
+  handler satisfies RouteHandlerConfig<"/api/projects/[id]/adicionales">
 }
 
 // Validate ../../src/app/api/projects/cubicaciones/route.ts
