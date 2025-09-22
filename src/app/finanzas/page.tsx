@@ -158,15 +158,24 @@ export default function FinanzasPage() {
             </div>
             <div>
               <label className="block text-sm">Categoría</label>
-              <input title="Categoría" aria-label="Categoría" value={filters.categoria} onChange={(e)=>setFilters(f=>({ ...f, categoria: e.target.value }))} className="input" placeholder="Ej: Materiales" />
+              <select title="Categoría" aria-label="Categoría" value={filters.categoria} onChange={(e)=>setFilters(f=>({ ...f, categoria: e.target.value }))} className="input">
+                <option value="">--Todas--</option>
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
             <div>
               <label className="block text-sm">Sub Contratista</label>
-              <input title="Sub Contratista ID" aria-label="Sub Contratista ID" value={filters.subContratistaId} onChange={(e)=>setFilters(f=>({ ...f, subContratistaId: e.target.value }))} className="input" placeholder="ID" />
+              <select title="Sub Contratista" aria-label="Sub Contratista" value={filters.subContratistaId} onChange={(e)=>setFilters(f=>({ ...f, subContratistaId: e.target.value }))} className="input">
+                <option value="">--Todos--</option>
+                {(subcontractors || []).map((s: any) => (
+                  <option key={s.id || s._id} value={s.id || s._id}>{s.nombre} {s.apellido} {s.empresa ? `(${s.empresa})` : ''}</option>
+                ))}
+              </select>
             </div>
           </div>
-          <div className="mt-3">
+          <div className="mt-3 flex gap-2">
             <button onClick={()=>{ /* trigger revalidation by updating a state key */ setFilters(f=>({ ...f })); }} className="btn btn-primary">Filtrar</button>
+            <button onClick={()=>{ setFilters({ desde: '', hasta: '', categoria: '', subContratistaId: '', tipo: '' }); }} className="btn">Limpiar filtros</button>
           </div>
         </section>
       )}
