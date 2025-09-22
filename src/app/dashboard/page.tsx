@@ -3,6 +3,8 @@ import ProgramasPendientesWidget from "./ProgramasPendientesWidget";
 import ProyectosWidget from "./ProyectosWidget";
 import { headers } from "next/headers";
 
+export const dynamic = 'force-dynamic';
+
 export default async function DashboardPage() {
   const session = await auth();
   const userName = session?.user?.name || session?.user?.email || "";

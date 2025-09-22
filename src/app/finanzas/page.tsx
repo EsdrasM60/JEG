@@ -8,7 +8,8 @@ const categories = ["Materiales", "Mano de Obra", "Gastos Adm", "Gastos Indirect
 const fetcher = (url: string) => fetch(url).then(r => r.ok ? r.json() : Promise.reject(r));
 
 function formatCurrency(n: number) {
-  return new Intl.NumberFormat('es-ES', { style: 'currency', currency: 'USD', maximumFractionDigits: 2 }).format(n).replace('US$', '').trim();
+  // format as 1,000,000.00 (commas thousands, dot decimal)
+  return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n);
 }
 
 function formatNumber(n: number) {
@@ -60,16 +61,20 @@ function PieSummary({ ingresos = 0, gastos = 0 }: { ingresos?: number; gastos?: 
   );
 }
 
+export const dynamic = 'force-dynamic';
+
 export default function FinanzasPage() {
   const [filters, setFilters] = useState({ desde: "", hasta: "", categoria: "", subContratistaId: "", tipo: "" });
   const [showFilters, setShowFilters] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({ fecha: "", tipo: "GASTO", monto: "", categoria: "", proyectoId: "", subContratistaId: "", nota: "" });
   const dateRef = useRef<HTMLInputElement | null>(null);
 
   const { data: summary } = useSWR('/api/finanzas/summary', fetcher);
-  const { data: entries } = useSWR(() => `/api/finanzas?desde=${filters.desde}&hasta=${filters.hasta}&categoria=${encodeURIComponent(filters.categoria)}&subContratistaId=${filters.subContratistaId}&tipo=${encodeURIComponent(filters.tipo)}`, fetcher, { revalidateOnFocus: false });
+  const entriesKey = `/api/finanzas?desde=${filters.desde}&hasta=${filters.hasta}&categoria=${encodeURIComponent(filters.categoria)}&subContratistaId=${filters.subContratistaId}&tipo=${encodeURIComponent(filters.tipo)}`;
+  const { data: entries } = useSWR(entriesKey, fetcher, { revalidateOnFocus: false });
   const { data: voluntarios } = useSWR('/api/voluntarios', fetcher);
   const { data: proyectosResp } = useSWR('/api/proyectos?page=1&pageSize=100', fetcher);
   // select employees whose cargo indicates they are subcontractors (covers 'Contratista', 'subcontratista', etc.)
@@ -90,6 +95,19 @@ export default function FinanzasPage() {
     return m;
   }, [proyectosList]);
 
+  // map subcontractor id -> display name (nombre apellido (empresa))
+  const subcontractorMap = useMemo(() => {
+    const m = new Map<string, string>();
+    (subcontractors || []).forEach((s: any) => {
+      const id = s._id || s.id;
+      if (!id) return;
+      const name = `${s.nombre || ''} ${s.apellido || ''}`.trim();
+      const display = name || (s.empresa ? s.empresa : String(id));
+      m.set(String(id), s.empresa ? `${display} (${s.empresa})` : display);
+    });
+    return m;
+  }, [subcontractors]);
+
   useEffect(() => {
     // initialize fecha default on modal open and focus date input
     if (modalOpen) {
@@ -101,8 +119,8 @@ export default function FinanzasPage() {
   // Revalidate entries and summary whenever filters change so filtering is reactive and summary matches the list
   React.useEffect(() => {
     try {
-      // revalidate list and summary
-      mutate('/api/finanzas');
+      // revalidate list (with current filters) and summary
+      mutate(entriesKey);
       mutate('/api/finanzas/summary');
     } catch (e) {
       // ignore
@@ -123,12 +141,20 @@ export default function FinanzasPage() {
         subContratistaId: form.subContratistaId || undefined,
         nota: form.nota || undefined,
       };
-      const res = await fetch('/api/finanzas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      let res;
+      if (editingEntryId) {
+        // update existing entry
+        res = await fetch(`/api/finanzas/${editingEntryId}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      } else {
+        // create new
+        res = await fetch('/api/finanzas', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(payload) });
+      }
       if (!res.ok) throw res;
       setModalOpen(false);
+      setEditingEntryId(null);
       setForm({ fecha: '', tipo: 'GASTO', monto: '', categoria: '', proyectoId: '', subContratistaId: '', nota: '' });
-      // revalidate lists and summary
-      await mutate('/api/finanzas');
+      // revalidate lists (with current filters) and summary
+      await mutate(entriesKey);
       await mutate('/api/finanzas/summary');
     } catch (err) {
       console.error('create finance error', err);
@@ -143,8 +169,7 @@ export default function FinanzasPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Finanzas</h1>
         <div className="flex items-center gap-2">
-          {/* eslint-disable-next-line jsx-a11y/aria-props */}
-          <button className="btn" onClick={() => setShowFilters(s => !s)} aria-expanded={showFilters ? 'true' : 'false'}>{showFilters ? 'Ocultar filtros' : 'Filtros'}</button>
+          <button className="btn" onClick={() => setShowFilters(s => !s)} aria-expanded={showFilters}>{showFilters ? 'Ocultar filtros' : 'Filtros'}</button>
           <button className="btn btn-primary" onClick={() => setModalOpen(true)}>Nuevo</button>
         </div>
       </div>
@@ -190,7 +215,11 @@ export default function FinanzasPage() {
               onClick={() => {
                 // reset filters and revalidate entries and summary immediately
                 setFilters({ desde: '', hasta: '', categoria: '', subContratistaId: '', tipo: '' });
-                try { mutate('/api/finanzas'); mutate('/api/finanzas/summary'); } catch (e) { /* ignore */ }
+                try {
+                  const clearedKey = `/api/finanzas?desde=&hasta=&categoria=&subContratistaId=&tipo=`;
+                  mutate(clearedKey);
+                  mutate('/api/finanzas/summary');
+                } catch (e) { /* ignore */ }
               }}
               className="btn"
             >
@@ -224,28 +253,41 @@ export default function FinanzasPage() {
                 const montoNum = Number(r.monto) || 0;
                 const proyectoName = proyectoMap.get(String(r.proyectoId)) || r.proyectoId || "-";
                 return (
-                  <tr key={r._id} className="border-t">
+                  <tr key={r._id} className="border-t cursor-pointer hover:bg-[color:var(--surface-2)]" onClick={() => {
+                    // open modal to edit this entry
+                    setEditingEntryId(String(r._id));
+                    setForm({
+                      fecha: new Date(r.fecha).toISOString().slice(0,10),
+                      tipo: r.tipo || 'GASTO',
+                      monto: formatCurrency(Number(r.monto) || 0),
+                      categoria: r.categoria || '',
+                      proyectoId: r.proyectoId || '',
+                      subContratistaId: r.subContratistaId || '',
+                      nota: r.nota || '',
+                    });
+                    setModalOpen(true);
+                  }}>
                     <td className="p-2">{new Date(r.fecha).toLocaleDateString()}</td>
                     <td className="p-2">{r.tipo}</td>
                     <td className="p-2 text-right pr-8">{formatNumber(montoNum)}</td>
                     <td className="p-2 pl-6">{r.categoria}</td>
                     <td className="p-2">{proyectoName}</td>
-                    <td className="p-2">{r.subContratistaId}</td>
+                    <td className="p-2">{subcontractorMap.get(String(r.subContratistaId)) || r.subContratistaId || '-'}</td>
                     <td className="p-2">{r.nota}</td>
                   </tr>
-                );
-              })}
-             </tbody>
-           </table>
-         </div>
-       </section>
+               );
+             })}
+            </tbody>
+          </table>
+        </div>
+      </section>
 
       {/* Modal */}
       {modalOpen && (
         <div className="fixed inset-0 z-[2000] flex items-center justify-center">
           <div className="absolute inset-0 bg-black/50" onClick={()=>setModalOpen(false)} />
           <form onSubmit={submitNew} className="relative z-[2001] w-full max-w-2xl bg-white p-4 rounded shadow-lg">
-            <h3 className="text-lg font-semibold mb-2">Nuevo registro</h3>
+            <h3 className="text-lg font-semibold mb-2">{editingEntryId ? 'Editar registro' : 'Nuevo registro'}</h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
                 <label className="block text-sm">Fecha</label>
@@ -303,12 +345,12 @@ export default function FinanzasPage() {
               </div>
             </div>
             <div className="mt-3 flex gap-2 justify-end">
-              <button type="button" className="btn" onClick={()=>setModalOpen(false)}>Cancelar</button>
-              <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? 'Guardando...' : 'Crear'}</button>
+              <button type="button" className="btn" onClick={()=>{ setModalOpen(false); setEditingEntryId(null); }}>Cancelar</button>
+              <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? (editingEntryId ? 'Guardando...' : 'Guardando...') : (editingEntryId ? 'Actualizar' : 'Crear')}</button>
             </div>
-          </form>
-        </div>
-      )}
+           </form>
+         </div>
+     )}
     </div>
   );
 }

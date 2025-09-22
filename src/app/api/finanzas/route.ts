@@ -10,10 +10,12 @@ export async function GET(req: Request) {
     const hasta = url.searchParams.get("hasta");
     const categoria = url.searchParams.get("categoria");
     const subContratistaId = url.searchParams.get("subContratistaId");
+    const tipo = url.searchParams.get("tipo");
 
     const q: any = {};
     if (categoria) q.categoria = { $regex: new RegExp(categoria, "i") };
     if (subContratistaId) q.subContratistaId = subContratistaId;
+    if (tipo) q.tipo = tipo;
     if (desde || hasta) q.fecha = {};
     if (desde) q.fecha.$gte = new Date(desde);
     if (hasta) q.fecha.$lte = new Date(hasta);

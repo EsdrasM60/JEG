@@ -63,7 +63,8 @@ export default function VoluntariosPage() {
   }
 
   async function startEdit(v: any) {
-    setEditing(v.id);
+    const id = v.id || v._id;
+    setEditing(id);
     setEditForm({
       nombre: v.nombre,
       apellido: v.apellido,
@@ -81,20 +82,40 @@ export default function VoluntariosPage() {
     if (!editing) return;
     const body = { ...editForm };
     if (body.empresa) body.congregacion = body.empresa;
-    await fetch(`/api/voluntarios/${editing}`, {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
+    try {
+      const res = await fetch(`/api/voluntarios/${editing}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(body),
+      });
+      if (!res.ok) {
+        const msg = await res.json().catch(() => ({}));
+        alert(msg?.error || "Error actualizando");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error de red al actualizar");
+    }
     setEditing(null);
     setEditForm({});
     setShowEdit(false);
     mutate();
   }
 
-  async function del(id: string) {
+  async function del(id?: string) {
+    const realId = id || null;
+    if (!realId) return alert("ID inválido");
     if (!confirm("¿Eliminar empleado?")) return;
-    await fetch(`/api/voluntarios/${id}`, { method: "DELETE" });
+    try {
+      const res = await fetch(`/api/voluntarios/${realId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const msg = await res.json().catch(() => ({}));
+        alert(msg?.error || "Error eliminando");
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Error de red al eliminar");
+    }
     mutate();
   }
 
@@ -337,7 +358,7 @@ export default function VoluntariosPage() {
                   </button>
                   <button
                     className="p-1 border rounded inline-flex items-center justify-center hover:bg-red-50 text-red-600"
-                    onClick={() => del(v.id)}
+                    onClick={() => del(v.id || v._id)}
                     title="Eliminar"
                     aria-label="Eliminar"
                   >
