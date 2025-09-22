@@ -35,7 +35,7 @@ export async function POST(req: Request) {
       status: body.status || "TODO",
       priority: typeof body.priority === "number" ? body.priority : 3,
       assigneeId: body.assigneeId || undefined,
-      dueDate: body.dueDate ? new Date(body.dueDate) : undefined,
+      dueDate: body.dueDate ? (typeof body.dueDate === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.dueDate) ? new Date(`${body.dueDate}T12:00:00Z`) : new Date(body.dueDate)) : undefined,
       created_by: body.actor || undefined,
     });
     return NextResponse.json(doc);

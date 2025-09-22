@@ -37,7 +37,7 @@ export async function POST(req: Request) {
     nota: body.nota || null,
     voluntarioId: body.voluntarioId || null,
     ayudanteId: body.ayudanteId || null,
-    fecha: body.fecha ? new Date(body.fecha) : new Date(),
+    fecha: body.fecha ? (typeof body.fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.fecha) ? new Date(`${body.fecha}T12:00:00Z`) : new Date(body.fecha)) : new Date(),
     etiquetas: Array.isArray(body.etiquetas) ? body.etiquetas : [],
     created_by: session.user?.email || null,
   });

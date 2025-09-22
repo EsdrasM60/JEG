@@ -20,7 +20,7 @@ export async function POST(req: Request) {
       title: String(body.title),
       description: body.description || undefined,
       cost: Number(body.cost) || 0,
-      fecha: body.fecha ? new Date(body.fecha) : undefined,
+      fecha: body.fecha ? (typeof body.fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.fecha) ? new Date(`${body.fecha}T12:00:00Z`) : new Date(body.fecha)) : undefined,
       responsableId: body.responsableId || undefined,
       createdBy: body.actor || undefined,
       fotos: Array.isArray(body.fotos) ? body.fotos.map((f: any) => ({ mediaId: f.mediaId, thumbId: f.thumbId || undefined, titulo: f.titulo || undefined })) : [],

@@ -32,7 +32,11 @@ export async function PATCH(req: Request) {
     if (body.title !== undefined) item.title = String(body.title);
     if (body.description !== undefined) item.description = body.description || undefined;
     if (body.cost !== undefined) item.cost = Number(body.cost) || 0;
-    if (body.fecha !== undefined) item.fecha = body.fecha ? new Date(body.fecha) : undefined;
+    if (body.fecha !== undefined) {
+      item.fecha = body.fecha
+        ? (typeof body.fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.fecha) ? new Date(`${body.fecha}T12:00:00Z`) : new Date(body.fecha))
+        : undefined;
+    }
     if (body.responsableId !== undefined) item.responsableId = body.responsableId || undefined;
     if (body.fotos !== undefined) {
       item.fotos = Array.isArray(body.fotos)

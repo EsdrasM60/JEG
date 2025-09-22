@@ -63,7 +63,8 @@ export default function ProjectBitacoraPage() {
     for (let i = 0; i < files.length; i++) {
       const file = files[i];
       const formData = new FormData();
-      formData.append("files", file);
+      // backend /api/uploads expects field name 'file' for a single file upload
+      formData.append("file", file);
 
       const uploadRes = await fetch("/api/uploads", {
         method: "POST",
@@ -75,9 +76,10 @@ export default function ProjectBitacoraPage() {
       }
 
       const uploadData = await uploadRes.json();
+      // /api/uploads returns { id, thumbId, filename, contentType }
       uploadedFiles.push({
-        mediaId: uploadData.fileIds[0],
-        thumbId: uploadData.thumbIds?.[0],
+        mediaId: uploadData.id,
+        thumbId: uploadData.thumbId,
         titulo: newEntry.fotoTitulos[i] || file.name,
         enEvidencia: newEntry.guardarEnEvidencia[i] || false
       });

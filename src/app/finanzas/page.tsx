@@ -53,18 +53,82 @@ function PieSummary({ ingresos = 0, gastos = 0 }: { ingresos?: number; gastos?: 
         </g>
       </svg>
       <div>
-        <div className="text-sm text-muted">Ingresos: <strong>{ingresos.toFixed(2)}</strong></div>
-        <div className="text-sm text-muted">Gastos: <strong>{gastos.toFixed(2)}</strong></div>
-        <div className="text-sm">Balance: <strong>{(ingresos - gastos).toFixed(2)}</strong></div>
+        <div className="text-sm text-muted">Ingresos: <strong>{formatNumber(ingresos)}</strong></div>
+        <div className="text-sm text-muted">Gastos: <strong>{formatNumber(gastos)}</strong></div>
+        <div className="text-sm">Balance: <strong>{formatNumber(ingresos - gastos)}</strong></div>
       </div>
     </div>
+  );
+}
+
+// New: stacked bar chart showing ingresos (green) and gastos (red) per month
+function BarChart({ data }: { data: Array<{ label: string; ingresos: number; gastos: number }> }) {
+  const maxTotal = Math.max(1, ...data.map(d => Math.abs(d.ingresos) + Math.abs(d.gastos)));
+  return (
+    <div className="w-full">
+      <div className="flex items-end gap-3 h-40">
+        {data.map((d) => {
+          const ingresosH = Math.round((Math.abs(d.ingresos) / maxTotal) * 100);
+          const gastosH = Math.round((Math.abs(d.gastos) / maxTotal) * 100);
+          return (
+            <div key={d.label} className="flex-1 flex flex-col items-center">
+              <div className="text-xs mb-1">{d.ingresos || d.gastos ? `${formatNumber(d.ingresos)} / ${formatNumber(d.gastos)}` : '—'}</div>
+              <div className="w-full bg-neutral-100 flex flex-col justify-end overflow-hidden" style={{ height: '120px' }}>
+                {/* gastos at bottom */}
+                <div className="w-full" style={{ height: `${gastosH}%`, background: '#fee2e2' }} />
+                {/* ingresos on top of gastos */}
+                <div className="w-full" style={{ height: `${ingresosH}%`, background: '#bbf7d0' }} />
+              </div>
+              <div className="text-xs mt-1 text-center">{d.label}</div>
+            </div>
+          );
+        })}
+      </div>
+      <div className="mt-2 text-xs flex justify-between">
+        <div className="flex items-center gap-2"><span className="w-3 h-3 bg-[#bbf7d0] inline-block" /> Ingresos</div>
+        <div className="flex items-center gap-2"><span className="w-3 h-3 bg-[#fee2e2] inline-block" /> Gastos</div>
+      </div>
+    </div>
+  );
+}
+
+function PieChart({ slices, size = 120 }: { slices: Array<{ label: string; value: number; color?: string }>; size?: number }) {
+  const total = slices.reduce((s, x) => s + Math.max(0, x.value), 0) || 1;
+  const radius = size / 2 - 8;
+  const circ = 2 * Math.PI * radius;
+  let offset = 0;
+  return (
+    <svg width={size} height={size} viewBox={`0 0 ${size} ${size}`}>
+      <g transform={`translate(${size/2},${size/2})`}>
+        {slices.map((s, i) => {
+          const portion = Math.max(0, s.value) / total;
+          const dash = portion * circ;
+          const stroke = s.color || `hsl(${(i * 57) % 360} 70% 50%)`;
+          const elem = (
+            <circle
+              key={s.label}
+              r={radius}
+              fill="none"
+              stroke={stroke}
+              strokeWidth={radius}
+              strokeDasharray={`${dash} ${Math.max(0, circ - dash)}`}
+              strokeDashoffset={-offset}
+              transform={`rotate(-90)`}
+              strokeLinecap="butt"
+            />
+          );
+          offset += dash;
+          return elem;
+        })}
+      </g>
+    </svg>
   );
 }
 
 export const dynamic = 'force-dynamic';
 
 export default function FinanzasPage() {
-  const [filters, setFilters] = useState({ desde: "", hasta: "", categoria: "", subContratistaId: "", tipo: "" });
+  const [filters, setFilters] = useState({ desde: "", hasta: "", categoria: "", subContratistaId: "", tipo: "", proyectoId: "" });
   const [showFilters, setShowFilters] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
@@ -73,7 +137,7 @@ export default function FinanzasPage() {
   const dateRef = useRef<HTMLInputElement | null>(null);
 
   const { data: summary } = useSWR('/api/finanzas/summary', fetcher);
-  const entriesKey = `/api/finanzas?desde=${filters.desde}&hasta=${filters.hasta}&categoria=${encodeURIComponent(filters.categoria)}&subContratistaId=${filters.subContratistaId}&tipo=${encodeURIComponent(filters.tipo)}`;
+  const entriesKey = `/api/finanzas?desde=${filters.desde}&hasta=${filters.hasta}&categoria=${encodeURIComponent(filters.categoria)}&subContratistaId=${filters.subContratistaId}&tipo=${encodeURIComponent(filters.tipo)}&proyectoId=${encodeURIComponent(filters.proyectoId)}`;
   const { data: entries } = useSWR(entriesKey, fetcher, { revalidateOnFocus: false });
   const { data: voluntarios } = useSWR('/api/voluntarios', fetcher);
   const { data: proyectosResp } = useSWR('/api/proyectos?page=1&pageSize=100', fetcher);
@@ -108,6 +172,35 @@ export default function FinanzasPage() {
     return m;
   }, [subcontractors]);
 
+  // compute totals from currently loaded entries (respecting filters)
+  const totals = useMemo(() => {
+    let ingresos = 0;
+    let gastos = 0;
+    if (Array.isArray(entries)) {
+      for (const e of entries) {
+        const m = Number(e.monto) || 0;
+        if (String(e.tipo || '').toUpperCase() === 'INGRESO') ingresos += m;
+        else gastos += m;
+      }
+    }
+    return { ingresos, gastos };
+  }, [entries]);
+
+  // compute category totals for current entries, grouped by tipo and categoria
+  const categoryTotals = useMemo(() => {
+    const byCat = new Map<string, number>();
+    if (!Array.isArray(entries)) return byCat;
+    for (const e of entries) {
+      const tipo = String(e.tipo || '').toUpperCase();
+      // only consider entries matching current tipo filter when a tipo is selected
+      if (filters.tipo && filters.tipo !== '' && filters.tipo !== tipo) continue;
+      const cat = e.categoria || (tipo === 'GASTO' ? 'Sin categoría' : 'Otros');
+      const cur = Number(e.monto) || 0;
+      byCat.set(cat, (byCat.get(cat) || 0) + cur);
+    }
+    return byCat;
+  }, [entries, filters.tipo]);
+
   useEffect(() => {
     // initialize fecha default on modal open and focus date input
     if (modalOpen) {
@@ -125,15 +218,48 @@ export default function FinanzasPage() {
     } catch (e) {
       // ignore
     }
-  }, [filters.desde, filters.hasta, filters.categoria, filters.subContratistaId, filters.tipo]);
+  }, [filters.desde, filters.hasta, filters.categoria, filters.subContratistaId, filters.tipo, filters.proyectoId]);
+
+  // derive monthly ingresos and gastos for the bar chart (last 12 months)
+  const monthlyData = useMemo(() => {
+    const now = new Date();
+    const months: string[] = [];
+    for (let i = 11; i >= 0; i--) {
+      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      months.push(d.toLocaleString('default', { month: 'short', year: 'numeric' }));
+    }
+    const map = new Map<string, { ingresos: number; gastos: number }>();
+    months.forEach(m => map.set(m, { ingresos: 0, gastos: 0 }));
+    if (Array.isArray(entries)) {
+      for (const e of entries) {
+        const dt = new Date(e.fecha);
+        if (isNaN(dt.getTime())) continue;
+        const key = dt.toLocaleString('default', { month: 'short', year: 'numeric' });
+        if (!map.has(key)) continue;
+        const v = Number(e.monto) || 0;
+        const tipo = String(e.tipo || '').toUpperCase();
+        const cur = map.get(key) || { ingresos: 0, gastos: 0 };
+        if (tipo === 'INGRESO') cur.ingresos += v;
+        else cur.gastos += v;
+        map.set(key, cur);
+      }
+    }
+    return months.map(m => ({ label: m, ingresos: map.get(m)?.ingresos || 0, gastos: map.get(m)?.gastos || 0 }));
+  }, [entries]);
 
   async function submitNew(e?: React.FormEvent) {
     e?.preventDefault();
     setSaving(true);
     try {
       const montoNumber = Number(String(form.monto).replace(/[^0-9.-]+/g, '')) || 0;
+      // Normalize fecha: use the selected date (YYYY-MM-DD) and set time to midday UTC
+      // to avoid timezone shifts that make the stored UTC date fall on the previous day.
+      const fechaIso = form.fecha
+        ? new Date(`${form.fecha}T12:00:00Z`).toISOString()
+        : new Date().toISOString();
+
       const payload = {
-        fecha: form.fecha || new Date().toISOString(),
+        fecha: fechaIso,
         tipo: form.tipo,
         monto: montoNumber,
         categoria: form.categoria,
@@ -169,7 +295,7 @@ export default function FinanzasPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Finanzas</h1>
         <div className="flex items-center gap-2">
-          <button className="btn" onClick={() => setShowFilters(s => !s)} aria-expanded={showFilters}>{showFilters ? 'Ocultar filtros' : 'Filtros'}</button>
+          <button className="btn" onClick={() => setShowFilters(s => !s)} aria-expanded={showFilters ? 'true' : 'false'}>{showFilters ? 'Ocultar filtros' : 'Filtros'}</button>
           <button className="btn btn-primary" onClick={() => setModalOpen(true)}>Nuevo</button>
         </div>
       </div>
@@ -177,6 +303,17 @@ export default function FinanzasPage() {
       {showFilters && (
         <section className="mt-4 border p-3 rounded bg-[color:var(--surface)]">
           <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
+            <div>
+              <label className="block text-sm">Proyecto</label>
+              <select title="Proyecto" aria-label="Proyecto filtro" value={filters.proyectoId} onChange={(e)=>setFilters(f=>({ ...f, proyectoId: e.target.value }))} className="input">
+                <option value="">--Todos--</option>
+                {proyectosList.map((p: any) => (
+                  <option key={p._id || p.id} value={p._id || p.id}>{p.titulo || p.name || `${p._id || p.id}`}</option>
+                ))}
+              </select>
+            </div>
+            <div className="sm:col-span-5" />
+            
             <div>
               <label className="block text-sm">Desde</label>
               <input title="Fecha desde" aria-label="Fecha desde" type="date" value={filters.desde} onChange={(e)=>setFilters(f=>({ ...f, desde: e.target.value }))} className="input" placeholder="Desde" />
@@ -214,9 +351,9 @@ export default function FinanzasPage() {
             <button
               onClick={() => {
                 // reset filters and revalidate entries and summary immediately
-                setFilters({ desde: '', hasta: '', categoria: '', subContratistaId: '', tipo: '' });
+                setFilters({ desde: '', hasta: '', categoria: '', subContratistaId: '', tipo: '', proyectoId: '' });
                 try {
-                  const clearedKey = `/api/finanzas?desde=&hasta=&categoria=&subContratistaId=&tipo=`;
+                  const clearedKey = `/api/finanzas?desde=&hasta=&categoria=&subContratistaId=&tipo=&proyectoId=`;
                   mutate(clearedKey);
                   mutate('/api/finanzas/summary');
                 } catch (e) { /* ignore */ }
@@ -231,6 +368,56 @@ export default function FinanzasPage() {
 
       <section className="mt-6">
         <h2 className="text-lg font-semibold">Ingresos / Gastos</h2>
+
+        {/* Totals and chart */}
+        <div className="mt-4 mb-4 flex items-center justify-between gap-6">
+          <div className="flex items-center gap-4 flex-1">
+            <div>
+              {/* If a specific tipo is selected, show category distribution for that tipo */}
+              {filters.tipo === 'GASTO' || filters.tipo === 'INGRESO' ? (
+                (() => {
+                  const slices = Array.from(categoryTotals.entries()).map(([label, value]) => ({ label, value }));
+                  // sort by value desc and take top 10
+                  slices.sort((a, b) => b.value - a.value);
+                  const top = slices.slice(0, 10);
+                  const rest = slices.slice(10);
+                  if (rest.length > 0) {
+                    const restSum = rest.reduce((s, x) => s + x.value, 0);
+                    top.push({ label: 'Otros', value: restSum });
+                  }
+                  return (
+                    <div className="flex items-center gap-3">
+                      <PieChart slices={top} size={120} />
+                      <div>
+                        <div className="text-sm text-muted">Distribución por categoría ({filters.tipo})</div>
+                        <div className="mt-1 text-sm">
+                          {top.map((s, i) => (
+                            <div key={s.label} className="flex items-center gap-2 text-xs">
+                              <span className="w-2 h-2 rounded inline-block bg-neutral-300" />
+                              <strong>{s.label}</strong>: {formatNumber(s.value)}
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })()
+              ) : (
+                <PieSummary ingresos={totals.ingresos} gastos={totals.gastos} />
+              )}
+            </div>
+            <div className="ml-6 w-[480px]">
+              <div className="text-sm text-muted mb-2">Ingresos / Gastos por mes (últimos 12 meses)</div>
+              <BarChart data={monthlyData} />
+            </div>
+          </div>
+           <div className="text-right">
+             <div className="text-sm text-muted">Total Ingresos</div>
+             <div className="text-xl font-semibold">{formatNumber(totals.ingresos)}</div>
+             <div className="text-sm text-muted mt-2">Total Gastos</div>
+             <div className="text-xl font-semibold text-red-600">{formatNumber(totals.gastos)}</div>
+           </div>
+         </div>
 
         <div className="mt-4 overflow-auto">
           <table className="table-auto w-full">

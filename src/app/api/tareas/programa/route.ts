@@ -100,8 +100,8 @@ export async function POST(req: Request) {
       fichaId: body.fichaId || null,
       voluntarioId: body.voluntarioId,
       ayudanteId: body.ayudanteId || null,
-      asignadoFecha: new Date(body.asignadoFecha),
-      completadoFecha: body.completadoFecha ? new Date(body.completadoFecha) : null,
+      asignadoFecha: (typeof body.asignadoFecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.asignadoFecha)) ? new Date(`${body.asignadoFecha}T12:00:00Z`) : new Date(body.asignadoFecha),
+      completadoFecha: body.completadoFecha ? ((typeof body.completadoFecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.completadoFecha)) ? new Date(`${body.completadoFecha}T12:00:00Z`) : new Date(body.completadoFecha)) : null,
       notas: body.notas || null,
       fotos: Array.isArray(body.fotos) ? body.fotos : [],
     });

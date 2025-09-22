@@ -40,7 +40,13 @@ export async function POST(req: Request) {
     const { default: Project } = await import("@/models/Project");
     const p = await Project.findById(id);
     if (!p) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    ((p as any).payments).push({ amount: body.amount, date: body.date ? new Date(body.date) : new Date(), method: body.method, note: body.note, createdBy: (session as any).user?.email ?? (session as any).user?.name ?? 'unknown' });
+    ((p as any).payments).push({
+      amount: body.amount,
+      date: body.date ? (typeof body.date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.date) ? new Date(`${body.date}T12:00:00Z`) : new Date(body.date)) : new Date(),
+      method: body.method,
+      note: body.note,
+      createdBy: (session as any).user?.email ?? (session as any).user?.name ?? 'unknown'
+    });
     await p.save();
     return NextResponse.json({ ok: true });
   } catch (e: any) {
