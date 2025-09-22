@@ -134,6 +134,8 @@ export default function VoluntariosPage() {
                   <label className="block text-sm mb-1">Nombre</label>
                   <input
                     className="w-full input"
+                    title="Nombre"
+                    placeholder="Nombre"
                     value={form.nombre}
                     onChange={(e) => setForm({ ...form, nombre: e.target.value })}
                     required
@@ -143,6 +145,8 @@ export default function VoluntariosPage() {
                   <label className="block text-sm mb-1">Apellido</label>
                   <input
                     className="w-full input"
+                    title="Apellido"
+                    placeholder="Apellido"
                     value={form.apellido}
                     onChange={(e) => setForm({ ...form, apellido: e.target.value })}
                     required
@@ -152,6 +156,8 @@ export default function VoluntariosPage() {
                   <label className="block text-sm mb-1">Correo</label>
                   <input
                     className="w-full input"
+                    title="Correo electrónico"
+                    placeholder="correo@ejemplo.com"
                     type="email"
                     value={form.email}
                     onChange={(e) => setForm({ ...form, email: e.target.value })}
@@ -161,6 +167,8 @@ export default function VoluntariosPage() {
                   <label className="block text-sm mb-1">Teléfono</label>
                   <input
                     className="w-full input"
+                    title="Teléfono"
+                    placeholder="+57 300 000 0000"
                     value={form.telefono}
                     onChange={(e) => setForm({ ...form, telefono: e.target.value })}
                   />
@@ -169,6 +177,8 @@ export default function VoluntariosPage() {
                   <label className="block text-sm mb-1">Empresa</label>
                   <input
                     className="w-full input"
+                    title="Empresa"
+                    placeholder="Empresa / Congregación"
                     value={form.empresa}
                     onChange={(e) => setForm({ ...form, empresa: e.target.value })}
                   />
@@ -177,6 +187,7 @@ export default function VoluntariosPage() {
                 <div>
                   <label className="block text-sm mb-1">Cargo</label>
                   <select
+                    title="Cargo"
                     className="w-full input"
                     value={form.cargo}
                     onChange={(e) => setForm({ ...form, cargo: e.target.value })}
@@ -212,6 +223,8 @@ export default function VoluntariosPage() {
                   <label className="block text-sm mb-1">Nombre</label>
                   <input
                     className="w-full input"
+                    title="Nombre"
+                    placeholder="Nombre"
                     value={editForm.nombre || ""}
                     onChange={(e) => setEditForm({ ...editForm, nombre: e.target.value })}
                     required
@@ -221,6 +234,8 @@ export default function VoluntariosPage() {
                   <label className="block text-sm mb-1">Apellido</label>
                   <input
                     className="w-full input"
+                    title="Apellido"
+                    placeholder="Apellido"
                     value={editForm.apellido || ""}
                     onChange={(e) => setEditForm({ ...editForm, apellido: e.target.value })}
                     required
@@ -230,6 +245,8 @@ export default function VoluntariosPage() {
                   <label className="block text-sm mb-1">Correo</label>
                   <input
                     className="w-full input"
+                    title="Correo electrónico"
+                    placeholder="correo@ejemplo.com"
                     type="email"
                     value={editForm.email || ""}
                     onChange={(e) => setEditForm({ ...editForm, email: e.target.value })}
@@ -239,6 +256,8 @@ export default function VoluntariosPage() {
                   <label className="block text-sm mb-1">Teléfono</label>
                   <input
                     className="w-full input"
+                    title="Teléfono"
+                    placeholder="+57 300 000 0000"
                     value={editForm.telefono || ""}
                     onChange={(e) => setEditForm({ ...editForm, telefono: e.target.value })}
                   />
@@ -247,6 +266,8 @@ export default function VoluntariosPage() {
                   <label className="block text-sm mb-1">Empresa</label>
                   <input
                     className="w-full input"
+                    title="Empresa"
+                    placeholder="Empresa / Congregación"
                     value={editForm.empresa || ""}
                     onChange={(e) => setEditForm({ ...editForm, empresa: e.target.value })}
                   />
@@ -255,6 +276,7 @@ export default function VoluntariosPage() {
                 <div>
                   <label className="block text-sm mb-1">Cargo</label>
                   <select
+                    title="Cargo"
                     className="w-full input"
                     value={editForm.cargo || "Tecnico"}
                     onChange={(e) => setEditForm({ ...editForm, cargo: e.target.value })}
