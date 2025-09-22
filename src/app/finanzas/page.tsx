@@ -66,20 +66,20 @@ function BarChart({ data }: { data: Array<{ label: string; ingresos: number; gas
   const maxTotal = Math.max(1, ...data.map(d => Math.abs(d.ingresos) + Math.abs(d.gastos)));
   return (
     <div className="w-full">
-      <div className="flex items-end gap-3 h-40">
+      <div className="flex items-end gap-3 h-56">
         {data.map((d) => {
           const ingresosH = Math.round((Math.abs(d.ingresos) / maxTotal) * 100);
           const gastosH = Math.round((Math.abs(d.gastos) / maxTotal) * 100);
           return (
-            <div key={d.label} className="flex-1 flex flex-col items-center">
-              <div className="text-xs mb-1">{d.ingresos || d.gastos ? `${formatNumber(d.ingresos)} / ${formatNumber(d.gastos)}` : '—'}</div>
-              <div className="w-full bg-neutral-100 flex flex-col justify-end overflow-hidden" style={{ height: '120px' }}>
+            <div key={d.label} className="flex-1 flex flex-col items-center min-w-[36px]">
+              <div className="text-xs mb-1 truncate w-full text-center">{d.ingresos || d.gastos ? `${formatNumber(d.ingresos)} / ${formatNumber(d.gastos)}` : '—'}</div>
+              <div className="w-full bg-neutral-100 flex flex-col justify-end overflow-hidden rounded" style={{ height: '160px' }}>
                 {/* gastos at bottom */}
                 <div className="w-full" style={{ height: `${gastosH}%`, background: '#fee2e2' }} />
                 {/* ingresos on top of gastos */}
                 <div className="w-full" style={{ height: `${ingresosH}%`, background: '#bbf7d0' }} />
               </div>
-              <div className="text-xs mt-1 text-center">{d.label}</div>
+              <div className="text-xs mt-2 text-center truncate w-full">{d.label}</div>
             </div>
           );
         })}
@@ -372,7 +372,7 @@ export default function FinanzasPage() {
         {/* Totals and chart */}
         <div className="mt-4 mb-4">
           <div className="text-sm text-muted mb-2">Ingresos / Gastos por mes (últimos 12 meses)</div>
-          <div className="flex items-start gap-6">
+          <div className="flex flex-col lg:flex-row items-center justify-center gap-6">
             <div className="flex items-center gap-4 flex-1">
               <div>
                 {/* If a specific tipo is selected, show category distribution for that tipo */}
@@ -408,7 +408,7 @@ export default function FinanzasPage() {
                 )}
               </div>
             </div>
-            <div className="w-[480px]">
+            <div className="flex-1 max-w-3xl w-full">
               <BarChart data={monthlyData} />
             </div>
           </div>
