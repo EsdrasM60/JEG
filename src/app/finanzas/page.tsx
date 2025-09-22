@@ -98,6 +98,17 @@ export default function FinanzasPage() {
     }
   }, [modalOpen]);
 
+  // Revalidate entries and summary whenever filters change so filtering is reactive and summary matches the list
+  React.useEffect(() => {
+    try {
+      // revalidate list and summary
+      mutate('/api/finanzas');
+      mutate('/api/finanzas/summary');
+    } catch (e) {
+      // ignore
+    }
+  }, [filters.desde, filters.hasta, filters.categoria, filters.subContratistaId, filters.tipo]);
+
   async function submitNew(e?: React.FormEvent) {
     e?.preventDefault();
     setSaving(true);
@@ -176,9 +187,9 @@ export default function FinanzasPage() {
           <div className="mt-3 flex gap-2">
             <button
               onClick={() => {
-                // reset filters and revalidate entries immediately
+                // reset filters and revalidate entries and summary immediately
                 setFilters({ desde: '', hasta: '', categoria: '', subContratistaId: '', tipo: '' });
-                try { mutate('/api/finanzas'); } catch (e) { /* ignore */ }
+                try { mutate('/api/finanzas'); mutate('/api/finanzas/summary'); } catch (e) { /* ignore */ }
               }}
               className="btn"
             >
