@@ -61,7 +61,7 @@ function PieSummary({ ingresos = 0, gastos = 0 }: { ingresos?: number; gastos?: 
 }
 
 export default function FinanzasPage() {
-  const [filters, setFilters] = useState({ desde: "", hasta: "", categoria: "", subContratistaId: "" });
+  const [filters, setFilters] = useState({ desde: "", hasta: "", categoria: "", subContratistaId: "", tipo: "" });
   const [showFilters, setShowFilters] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -69,7 +69,7 @@ export default function FinanzasPage() {
   const dateRef = useRef<HTMLInputElement | null>(null);
 
   const { data: summary } = useSWR('/api/finanzas/summary', fetcher);
-  const { data: entries } = useSWR(() => `/api/finanzas?desde=${filters.desde}&hasta=${filters.hasta}&categoria=${encodeURIComponent(filters.categoria)}&subContratistaId=${filters.subContratistaId}`, fetcher, { revalidateOnFocus: false });
+  const { data: entries } = useSWR(() => `/api/finanzas?desde=${filters.desde}&hasta=${filters.hasta}&categoria=${encodeURIComponent(filters.categoria)}&subContratistaId=${filters.subContratistaId}&tipo=${encodeURIComponent(filters.tipo)}`, fetcher, { revalidateOnFocus: false });
   const { data: voluntarios } = useSWR('/api/voluntarios', fetcher);
   const { data: proyectosResp } = useSWR('/api/proyectos?page=1&pageSize=100', fetcher);
   // select employees whose cargo indicates they are subcontractors (covers 'Contratista', 'subcontratista', etc.)
@@ -139,7 +139,7 @@ export default function FinanzasPage() {
 
       {showFilters && (
         <section className="mt-4 border p-3 rounded bg-[color:var(--surface)]">
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-3">
+          <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
             <div>
               <label className="block text-sm">Desde</label>
               <input title="Fecha desde" aria-label="Fecha desde" type="date" value={filters.desde} onChange={(e)=>setFilters(f=>({ ...f, desde: e.target.value }))} className="input" placeholder="Desde" />
@@ -149,20 +149,20 @@ export default function FinanzasPage() {
               <input title="Fecha hasta" aria-label="Fecha hasta" type="date" value={filters.hasta} onChange={(e)=>setFilters(f=>({ ...f, hasta: e.target.value }))} className="input" placeholder="Hasta" />
             </div>
             <div>
-              <label className="block text-sm">Categoría</label>
-              <select title="Categoría" aria-label="Categoría" value={filters.categoria} onChange={(e)=>setFilters(f=>({ ...f, categoria: e.target.value }))} className="input">
-                <option value="">--Todas--</option>
-                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              <label className="block text-sm">Tipo</label>
+              <select title="Tipo filtro" aria-label="Tipo filtro" value={filters.tipo} onChange={(e)=>setFilters(f=>({ ...f, tipo: e.target.value }))} className="input">
+                <option value="">--Todos--</option>
+                <option value="INGRESO">INGRESO</option>
+                <option value="GASTO">GASTO</option>
               </select>
             </div>
             <div>
+              <label className="block text-sm">Categoría</label>
+              <input title="Categoría" aria-label="Categoría" value={filters.categoria} onChange={(e)=>setFilters(f=>({ ...f, categoria: e.target.value }))} className="input" placeholder="Ej: Materiales" />
+            </div>
+            <div>
               <label className="block text-sm">Sub Contratista</label>
-              <select title="Sub Contratista" aria-label="Sub Contratista" value={filters.subContratistaId} onChange={(e)=>setFilters(f=>({ ...f, subContratistaId: e.target.value }))} className="input">
-                <option value="">--Todos--</option>
-                {(subcontractors || []).map((s: any) => (
-                  <option key={s.id || s._id} value={s.id || s._id}>{s.nombre} {s.apellido} {s.empresa ? `(${s.empresa})` : ''}</option>
-                ))}
-              </select>
+              <input title="Sub Contratista ID" aria-label="Sub Contratista ID" value={filters.subContratistaId} onChange={(e)=>setFilters(f=>({ ...f, subContratistaId: e.target.value }))} className="input" placeholder="ID" />
             </div>
           </div>
           <div className="mt-3">
