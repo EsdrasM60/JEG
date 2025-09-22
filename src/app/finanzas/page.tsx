@@ -370,54 +370,49 @@ export default function FinanzasPage() {
         <h2 className="text-lg font-semibold">Ingresos / Gastos</h2>
 
         {/* Totals and chart */}
-        <div className="mt-4 mb-4 flex items-center justify-between gap-6">
-          <div className="flex items-center gap-4 flex-1">
-            <div>
-              {/* If a specific tipo is selected, show category distribution for that tipo */}
-              {filters.tipo === 'GASTO' || filters.tipo === 'INGRESO' ? (
-                (() => {
-                  const slices = Array.from(categoryTotals.entries()).map(([label, value]) => ({ label, value }));
-                  // sort by value desc and take top 10
-                  slices.sort((a, b) => b.value - a.value);
-                  const top = slices.slice(0, 10);
-                  const rest = slices.slice(10);
-                  if (rest.length > 0) {
-                    const restSum = rest.reduce((s, x) => s + x.value, 0);
-                    top.push({ label: 'Otros', value: restSum });
-                  }
-                  return (
-                    <div className="flex items-center gap-3">
-                      <PieChart slices={top} size={120} />
-                      <div>
-                        <div className="text-sm text-muted">Distribución por categoría ({filters.tipo})</div>
-                        <div className="mt-1 text-sm">
-                          {top.map((s, i) => (
-                            <div key={s.label} className="flex items-center gap-2 text-xs">
-                              <span className="w-2 h-2 rounded inline-block bg-neutral-300" />
-                              <strong>{s.label}</strong>: {formatNumber(s.value)}
-                            </div>
-                          ))}
+        <div className="mt-4 mb-4">
+          <div className="text-sm text-muted mb-2">Ingresos / Gastos por mes (últimos 12 meses)</div>
+          <div className="flex items-start gap-6">
+            <div className="flex items-center gap-4 flex-1">
+              <div>
+                {/* If a specific tipo is selected, show category distribution for that tipo */}
+                {filters.tipo === 'GASTO' || filters.tipo === 'INGRESO' ? (
+                  (() => {
+                    const slices = Array.from(categoryTotals.entries()).map(([label, value]) => ({ label, value }));
+                    slices.sort((a, b) => b.value - a.value);
+                    const top = slices.slice(0, 10);
+                    const rest = slices.slice(10);
+                    if (rest.length > 0) {
+                      const restSum = rest.reduce((s, x) => s + x.value, 0);
+                      top.push({ label: 'Otros', value: restSum });
+                    }
+                    return (
+                      <div className="flex items-center gap-3">
+                        <PieChart slices={top} size={120} />
+                        <div>
+                          <div className="text-sm text-muted">Distribución por categoría ({filters.tipo})</div>
+                          <div className="mt-1 text-sm">
+                            {top.map((s, i) => (
+                              <div key={s.label} className="flex items-center gap-2 text-xs">
+                                <span className="w-2 h-2 rounded inline-block bg-neutral-300" />
+                                <strong>{s.label}</strong>: {formatNumber(s.value)}
+                              </div>
+                            ))}
+                          </div>
                         </div>
                       </div>
-                    </div>
-                  );
-                })()
-              ) : (
-                <PieSummary ingresos={totals.ingresos} gastos={totals.gastos} />
-              )}
+                    );
+                  })()
+                ) : (
+                  <PieSummary ingresos={totals.ingresos} gastos={totals.gastos} />
+                )}
+              </div>
             </div>
-            <div className="ml-6 w-[480px]">
-              <div className="text-sm text-muted mb-2">Ingresos / Gastos por mes (últimos 12 meses)</div>
+            <div className="w-[480px]">
               <BarChart data={monthlyData} />
             </div>
           </div>
-           <div className="text-right">
-             <div className="text-sm text-muted">Total Ingresos</div>
-             <div className="text-xl font-semibold">{formatNumber(totals.ingresos)}</div>
-             <div className="text-sm text-muted mt-2">Total Gastos</div>
-             <div className="text-xl font-semibold text-red-600">{formatNumber(totals.gastos)}</div>
-           </div>
-         </div>
+        </div>
 
         <div className="mt-4 overflow-auto">
           <table className="table-auto w-full">
