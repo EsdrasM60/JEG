@@ -174,8 +174,16 @@ export default function FinanzasPage() {
             </div>
           </div>
           <div className="mt-3 flex gap-2">
-            <button onClick={()=>{ /* trigger revalidation by updating a state key */ setFilters(f=>({ ...f })); }} className="btn btn-primary">Filtrar</button>
-            <button onClick={()=>{ setFilters({ desde: '', hasta: '', categoria: '', subContratistaId: '', tipo: '' }); }} className="btn">Limpiar filtros</button>
+            <button
+              onClick={() => {
+                // reset filters and revalidate entries immediately
+                setFilters({ desde: '', hasta: '', categoria: '', subContratistaId: '', tipo: '' });
+                try { mutate('/api/finanzas'); } catch (e) { /* ignore */ }
+              }}
+              className="btn"
+            >
+              Limpiar filtros
+            </button>
           </div>
         </section>
       )}
