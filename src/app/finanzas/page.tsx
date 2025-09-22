@@ -72,7 +72,13 @@ export default function FinanzasPage() {
   const { data: entries } = useSWR(() => `/api/finanzas?desde=${filters.desde}&hasta=${filters.hasta}&categoria=${encodeURIComponent(filters.categoria)}&subContratistaId=${filters.subContratistaId}`, fetcher, { revalidateOnFocus: false });
   const { data: voluntarios } = useSWR('/api/voluntarios', fetcher);
   const { data: proyectosResp } = useSWR('/api/proyectos?page=1&pageSize=100', fetcher);
-  const subcontractors = Array.isArray(voluntarios) ? voluntarios.filter((v: any) => String(v.cargo || '').toLowerCase().includes('sub')) : [];
+  // select employees whose cargo indicates they are subcontractors (covers 'Contratista', 'subcontratista', etc.)
+  const subcontractors = Array.isArray(voluntarios)
+    ? voluntarios.filter((v: any) => {
+        const c = String(v.cargo || '').toLowerCase();
+        return c.includes('sub') || c.includes('contrat') || c.includes('subcontrat');
+      })
+    : [];
   const proyectosList = Array.isArray(proyectosResp) ? proyectosResp : (proyectosResp?.items || []);
 
   const proyectoMap = useMemo(() => {
@@ -144,11 +150,19 @@ export default function FinanzasPage() {
             </div>
             <div>
               <label className="block text-sm">Categoría</label>
-              <input title="Categoría" aria-label="Categoría" value={filters.categoria} onChange={(e)=>setFilters(f=>({ ...f, categoria: e.target.value }))} className="input" placeholder="Ej: Materiales" />
+              <select title="Categoría" aria-label="Categoría" value={filters.categoria} onChange={(e)=>setFilters(f=>({ ...f, categoria: e.target.value }))} className="input">
+                <option value="">--Todas--</option>
+                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
             </div>
             <div>
               <label className="block text-sm">Sub Contratista</label>
-              <input title="Sub Contratista ID" aria-label="Sub Contratista ID" value={filters.subContratistaId} onChange={(e)=>setFilters(f=>({ ...f, subContratistaId: e.target.value }))} className="input" placeholder="ID" />
+              <select title="Sub Contratista" aria-label="Sub Contratista" value={filters.subContratistaId} onChange={(e)=>setFilters(f=>({ ...f, subContratistaId: e.target.value }))} className="input">
+                <option value="">--Todos--</option>
+                {(subcontractors || []).map((s: any) => (
+                  <option key={s.id || s._id} value={s.id || s._id}>{s.nombre} {s.apellido} {s.empresa ? `(${s.empresa})` : ''}</option>
+                ))}
+              </select>
             </div>
           </div>
           <div className="mt-3">
@@ -246,8 +260,8 @@ export default function FinanzasPage() {
                 </select>
               </div>
               <div>
-                <label className="block text-sm">Sub Contratista ID</label>
-                <select title="Sub Contratista ID" aria-label="Sub Contratista ID" value={form.subContratistaId} onChange={(e)=>setForm(f=>({ ...f, subContratistaId: e.target.value }))} className="input">
+                <label className="block text-sm">Sub Contratista</label>
+                <select title="Sub Contratista" aria-label="Sub Contratista" value={form.subContratistaId} onChange={(e)=>setForm(f=>({ ...f, subContratistaId: e.target.value }))} className="input">
                   <option value="">--Seleccionar--</option>
                   {subcontractors.map((s: any) => (
                     <option key={s.id || s._id} value={s.id || s._id}>{s.nombre} {s.apellido} {s.empresa ? `(${s.empresa})` : ''}</option>
