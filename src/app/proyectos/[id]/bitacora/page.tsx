@@ -2,7 +2,8 @@
 
 import { useParams } from "next/navigation";
 import useSWR from "swr";
-import { useState } from "react";
+import { useState, useCallback } from "react";
+import { useSession } from "next-auth/react";
 
 const fetcher = async (url: string) => {
   const res = await fetch(url);
@@ -45,6 +46,8 @@ export default function ProjectBitacoraPage() {
     fetcher
   );
 
+  const { data: session } = useSession();
+
   const [showNewEntry, setShowNewEntry] = useState(false);
   const [newEntry, setNewEntry] = useState({
     fecha: new Date().toISOString().split('T')[0],
@@ -57,34 +60,64 @@ export default function ProjectBitacoraPage() {
 
   const bitacoraEntries = project?.bitacora || [];
 
+  // client-side image compression util (resize + convert to webp)
+  const compressImage = useCallback(async (file: File, maxWidth = 1600, quality = 0.8): Promise<Blob> => {
+    // createImageBitmap for efficient decoding
+    const img = await createImageBitmap(file);
+    const scale = Math.min(1, maxWidth / Math.max(img.width, img.height));
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
+    const canvas = document.createElement('canvas');
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext('2d')!;
+    ctx.drawImage(img, 0, 0, w, h);
+    return await new Promise<Blob>((resolve) => {
+      canvas.toBlob((b) => resolve(b!), 'image/webp', quality);
+    });
+  }, []);
+
+  // upload helper with compression and concurrency
   async function uploadFiles(files: File[]) {
-    const uploadedFiles = [];
-    
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-      const formData = new FormData();
-      // backend /api/uploads expects field name 'file' for a single file upload
-      formData.append("file", file);
+    const uploadedFiles = [] as Array<any>;
+    const MAX_COMPRESSED_BYTES = 5 * 1024 * 1024; // 5 MB per compressed file
+    const concurrency = 3;
 
-      const uploadRes = await fetch("/api/uploads", {
-        method: "POST",
-        body: formData
-      });
-
-      if (!uploadRes.ok) {
-        throw new Error(`Error subiendo archivo ${file.name}`);
+    async function uploadSingle(file: File, index: number) {
+      // compress
+      const compressed = await compressImage(file, 1600, 0.8);
+      if (compressed.size > MAX_COMPRESSED_BYTES) {
+        throw new Error(`Archivo ${file.name} demasiado grande tras compresión (${Math.round(compressed.size/1024)} KB)`);
       }
+      const blobName = file.name.replace(/\.[^.]+$/, '') + '.webp';
+      const formData = new FormData();
+      formData.append('file', compressed, blobName);
 
+      const uploadRes = await fetch('/api/uploads', { method: 'POST', body: formData });
+      if (!uploadRes.ok) {
+        const text = await uploadRes.text().catch(() => '');
+        throw new Error(text || `Error subiendo archivo ${file.name}`);
+      }
       const uploadData = await uploadRes.json();
-      // /api/uploads returns { id, thumbId, filename, contentType }
-      uploadedFiles.push({
+      return {
         mediaId: uploadData.id,
         thumbId: uploadData.thumbId,
-        titulo: newEntry.fotoTitulos[i] || file.name,
-        enEvidencia: newEntry.guardarEnEvidencia[i] || false
-      });
+        titulo: newEntry.fotoTitulos[index] || file.name,
+        enEvidencia: newEntry.guardarEnEvidencia[index] || false
+      };
     }
 
+    const queue = files.map((f, i) => ({ f, i }));
+    const workers = new Array(concurrency).fill(null).map(async () => {
+      while (queue.length) {
+        const item = queue.shift();
+        if (!item) break;
+        const res = await uploadSingle(item.f, item.i);
+        uploadedFiles.push(res);
+      }
+    });
+
+    await Promise.all(workers);
     return uploadedFiles;
   }
 
@@ -107,11 +140,13 @@ export default function ProjectBitacoraPage() {
         uploadedFotos = await uploadFiles(newEntry.fotos);
       }
 
+      // Guardar la fecha como midday UTC para evitar desplazamientos de zona horaria
+      const fechaStored = `${newEntry.fecha}T12:00:00Z`;
       const bitacoraEntry = {
-        fecha: newEntry.fecha,
+        fecha: fechaStored,
         notas: newEntry.notas.trim(),
         fotos: uploadedFotos,
-        createdBy: "current-user", // TODO: obtener del contexto de auth
+        createdBy: session?.user?.name || session?.user?.email || "current-user",
         createdAt: new Date().toISOString()
       };
 
@@ -257,7 +292,7 @@ export default function ProjectBitacoraPage() {
                   {entry.fotos.map((foto, idx) => (
                     <div key={idx} className="relative group">
                       <img
-                        src={`/api/images/${foto.thumbId || foto.mediaId}`}
+                        src={foto.thumbId ? `/api/images/${foto.thumbId}?thumb=1` : `/api/images/${foto.mediaId}`}
                         alt={foto.titulo || `Foto ${idx + 1}`}
                         className="w-full h-32 object-cover rounded-lg"
                       />
@@ -337,8 +372,10 @@ export default function ProjectBitacoraPage() {
                             className="w-20 h-20 object-cover rounded"
                           />
                           <div className="flex-1 space-y-2">
+                            <label className="block text-xs text-neutral-600">Título (opcional)</label>
                             <input
                               type="text"
+                              title={`Título de la foto ${index + 1}`}
                               value={newEntry.fotoTitulos[index]}
                               onChange={(e) => updateFotoTitulo(index, e.target.value)}
                               className="w-full input"
@@ -347,6 +384,7 @@ export default function ProjectBitacoraPage() {
                             <label className="flex items-center gap-2">
                               <input
                                 type="checkbox"
+                                title={`Guardar foto ${index + 1} en evidencias`}
                                 checked={newEntry.guardarEnEvidencia[index]}
                                 onChange={(e) => updateGuardarEnEvidencia(index, e.target.checked)}
                                 className="w-4 h-4"
@@ -357,17 +395,20 @@ export default function ProjectBitacoraPage() {
                           <button
                             onClick={() => removeFoto(index)}
                             className="text-red-600 hover:text-red-800"
+                            aria-label={`Eliminar foto ${index + 1}`}
+                            title={`Eliminar foto ${index + 1}`}
                           >
                             ✕
                           </button>
                         </div>
                       </div>
-                    ))}
-                  </div>
-                )}
-                
+                     ))}
+                   </div>
+                 )}
+                 
                 <input
                   type="file"
+                  title="Seleccionar fotos"
                   accept="image/*"
                   multiple
                   onChange={(e) => {
