@@ -143,6 +143,7 @@ export default function FinanzasPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Finanzas</h1>
         <div className="flex items-center gap-2">
+          {/* eslint-disable-next-line jsx-a11y/aria-props */}
           <button className="btn" onClick={() => setShowFilters(s => !s)} aria-expanded={showFilters ? 'true' : 'false'}>{showFilters ? 'Ocultar filtros' : 'Filtros'}</button>
           <button className="btn btn-primary" onClick={() => setModalOpen(true)}>Nuevo</button>
         </div>
