@@ -17,6 +17,7 @@ const baseLinks = [
   { href: "/usuarios", label: "👥 Usuarios" },
   { href: "/proyectos", label: "📁 Proyectos" },
   { href: "/actividad", label: "📰 Actividad" },
+  { href: "/finanzas", label: "💰 Finanzas" },
 ];
 
 export function Sidebar({ open, onClose }: SidebarProps) {

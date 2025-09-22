@@ -18,9 +18,13 @@ export async function PATCH(req: Request) {
     const body = await req.json().catch(() => ({}));
     const p = await Project.findById(projectId);
     if (!p) return NextResponse.json({ error: "project not found" }, { status: 404 });
-    const idx = (p as any).adicionales.findIndex((a: any) => String(a._id) === String(aid) || String(a.id) === String(aid));
+
+    const adicionales = (p as any).adicionales || [];
+    if (!Array.isArray(adicionales)) return NextResponse.json({ error: "project adicionales invalid" }, { status: 400 });
+
+    const idx = adicionales.findIndex((a: any) => String(a._id) === String(aid) || String(a.id) === String(aid));
     if (idx === -1) return NextResponse.json({ error: "adicional not found" }, { status: 404 });
-    const item = (p as any).adicionales[idx];
+    const item = adicionales[idx];
 
     const prevStatus = item.status;
 
@@ -30,8 +34,15 @@ export async function PATCH(req: Request) {
     if (body.cost !== undefined) item.cost = Number(body.cost) || 0;
     if (body.fecha !== undefined) item.fecha = body.fecha ? new Date(body.fecha) : undefined;
     if (body.responsableId !== undefined) item.responsableId = body.responsableId || undefined;
-    if (body.fotos !== undefined) item.fotos = Array.isArray(body.fotos) ? body.fotos.map((f: any) => ({ mediaId: f.mediaId, thumbId: f.thumbId || undefined, titulo: f.titulo || undefined })) : [];
+    if (body.fotos !== undefined) {
+      item.fotos = Array.isArray(body.fotos)
+        ? body.fotos.map((f: any) => ({ mediaId: f?.mediaId, thumbId: f?.thumbId || undefined, titulo: f?.titulo || undefined }))
+        : [];
+    }
     if (body.status !== undefined) item.status = String(body.status);
+
+    // assign back in case mongoose needs the parent array set
+    (p as any).adicionales = adicionales;
 
     await p.save();
 
@@ -41,21 +52,21 @@ export async function PATCH(req: Request) {
         const { default: Notification } = await import("@/models/Notification");
         await Notification.create({
           type: "ADICIONAL_STATUS",
-          message: `Adicional \"${item.title}\" en proyecto ${projectId} cambió a ${String(item.status)}`,
+          message: `Adicional "${item.title}" en proyecto ${projectId} cambió a ${String(item.status)}`,
           level: "info",
           meta: { projectId, adicionalId: String(item._id), status: item.status },
           createdBy: undefined,
           targetRoles: ["ADMIN", "COORDINADOR"],
         });
       }
-    } catch (nerr) {
-      console.warn("Notification create error:", nerr);
+    } catch (nerr: any) {
+      console.warn("Notification create error:", nerr?.message || nerr);
     }
 
     return NextResponse.json(item);
   } catch (e: any) {
-    console.error(e);
-    return NextResponse.json({ error: "Unexpected" }, { status: 500 });
+    console.error("PATCH /api/projects/[id]/adicionales/[aid] error:", e);
+    return NextResponse.json({ error: e?.message || "Unexpected" }, { status: 500 });
   }
 }
 
@@ -65,11 +76,15 @@ export async function DELETE(req: Request) {
     const { projectId, aid } = parseParts(req);
     const p = await Project.findById(projectId);
     if (!p) return NextResponse.json({ error: "project not found" }, { status: 404 });
-    (p as any).adicionales = (p as any).adicionales.filter((a: any) => String(a._id) !== String(aid) && String(a.id) !== String(aid));
+
+    const adicionales = (p as any).adicionales || [];
+    if (!Array.isArray(adicionales)) return NextResponse.json({ error: "project adicionales invalid" }, { status: 400 });
+
+    (p as any).adicionales = adicionales.filter((a: any) => String(a._id) !== String(aid) && String(a.id) !== String(aid));
     await p.save();
     return NextResponse.json({ ok: true });
   } catch (e: any) {
-    console.error(e);
-    return NextResponse.json({ error: "Unexpected" }, { status: 500 });
+    console.error("DELETE /api/projects/[id]/adicionales/[aid] error:", e);
+    return NextResponse.json({ error: e?.message || "Unexpected" }, { status: 500 });
   }
 }
