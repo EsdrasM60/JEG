@@ -122,14 +122,14 @@ export default function VoluntariosPage() {
   return (
     <div className="max-w-6xl mx-auto p-6 space-y-8">
       <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold">Empleados</h1>
+        <h1 className="text-4xl font-extrabold tracking-tight">Empleados</h1>
         <button
-          className="inline-flex items-center gap-2 px-3 py-2 rounded bg-foreground text-background"
+          className="inline-flex items-center gap-2 px-3 py-2 rounded bg-foreground text-background shadow-sm hover:shadow-md transition"
           onClick={() => setShowCreate(true)}
           aria-label="Nuevo empleado"
         >
           <PlusCircleIcon className="h-5 w-5" />
-          <span>Nuevo</span>
+          <span className="font-medium">Nuevo</span>
         </button>
       </div>
 
@@ -320,36 +320,36 @@ export default function VoluntariosPage() {
 
       {/* Listado */}
       <div className="overflow-x-auto">
-        <table className="w-full text-sm">
+        <table className="w-full text-base">
           <thead>
-            <tr className="text-left border-b">
-              <th className="py-2">Nombre</th>
-              <th>ID</th>
-              <th>Correo</th>
-              <th>Teléfono</th>
-              <th>Empresa</th>
-              <th>Cargo</th>
-              <th></th>
+            <tr className="text-left border-b bg-neutral-50">
+              <th className="py-3 px-2 font-semibold uppercase text-neutral-700 tracking-wide">Nombre</th>
+              <th className="py-3 px-2 font-semibold uppercase text-neutral-700 tracking-wide">ID</th>
+              <th className="py-3 px-2 font-semibold uppercase text-neutral-700 tracking-wide">Correo</th>
+              <th className="py-3 px-2 font-semibold uppercase text-neutral-700 tracking-wide">Teléfono</th>
+              <th className="py-3 px-2 font-semibold uppercase text-neutral-700 tracking-wide">Empresa</th>
+              <th className="py-3 px-2 font-semibold uppercase text-neutral-700 tracking-wide">Cargo</th>
+              <th className="py-3 px-2"></th>
             </tr>
           </thead>
           <tbody>
             {items.map((v: any) => (
-              <tr key={v.id || v._id} className="border-b">
-                <td className="py-2">
-                  <span>{v.nombre} {v.apellido}</span>
+              <tr key={v.id || v._id} className="border-b hover:bg-white/50 transition-colors">
+                <td className="py-3 px-2">
+                  <span className="font-medium text-neutral-900">{v.nombre} {v.apellido}</span>
                 </td>
-                <td className="whitespace-nowrap">
+                <td className="whitespace-nowrap py-3 px-2">
                   <div className="flex items-center gap-2" title={String(v.id || v._id)}>
-                    <code className="text-xs font-mono text-neutral-700 bg-neutral-100 px-1.5 py-0.5 rounded">{v.shortId || shortId(v.id || v._id)}</code>
+                    <code className="text-sm font-mono text-neutral-700 bg-neutral-100 px-2 py-1 rounded">{v.shortId || shortId(v.id || v._id)}</code>
                   </div>
                 </td>
-                <td>{v.email || "—"}</td>
-                <td>{v.telefono || "—"}</td>
-                <td>{v.empresa || v.congregacion || "—"}</td>
-                <td>{v.cargo || "—"}</td>
-                <td className="text-right whitespace-nowrap py-2">
+                <td className="py-3 px-2 text-neutral-700">{v.email || "—"}</td>
+                <td className="py-3 px-2 text-neutral-700">{v.telefono || "—"}</td>
+                <td className="py-3 px-2 text-neutral-700">{v.empresa || v.congregacion || "—"}</td>
+                <td className="py-3 px-2 text-neutral-700">{v.cargo || "—"}</td>
+                <td className="text-right whitespace-nowrap py-3 px-2">
                   <button
-                    className="p-1 mr-2 border rounded inline-flex items-center justify-center hover:bg-muted"
+                    className="p-1 mr-2 border rounded inline-flex items-center justify-center hover:bg-muted transition"
                     onClick={() => startEdit(v)}
                     title="Editar"
                     aria-label="Editar"
@@ -357,7 +357,7 @@ export default function VoluntariosPage() {
                     <PencilSquareIcon className="h-5 w-5" />
                   </button>
                   <button
-                    className="p-1 border rounded inline-flex items-center justify-center hover:bg-red-50 text-red-600"
+                    className="p-1 border rounded inline-flex items-center justify-center hover:bg-red-50 text-red-600 transition"
                     onClick={() => del(v.id || v._id)}
                     title="Eliminar"
                     aria-label="Eliminar"
