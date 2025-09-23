@@ -119,12 +119,24 @@ export default function TareasPage() {
   const [editOpen, setEditOpen] = useState(false);
   const [editItem, setEditItem] = useState<Programa | null>(null);
   const [editFotos, setEditFotos] = useState<string[]>([]);
+  const [showCompleted, setShowCompleted] = useState(true);
 
   function openEdit(p: Programa) {
     setEditItem(p);
     setEditFotos((p as any).fotos || []);
     setEditOpen(true);
   }
+
+  // fetch fresh checklist for editing when modal opens
+  useEffect(() => {
+    if (!editOpen || !editItem) return;
+    (async () => {
+      try {
+        const res = await fetch(`/api/tareas/programa?page=1&pageSize=1&compact=0`);
+        // ignore
+      } catch {}
+    })();
+  }, [editOpen, editItem]);
 
   function removeEditFoto(id: string) {
     setEditFotos((arr) => arr.filter((x) => x !== id));
@@ -580,6 +592,49 @@ export default function TareasPage() {
                   }} />
                 </div>
 
+                {/* Checklist */}
+                <div>
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="text-sm font-medium">Checklist</div>
+                    <div className="flex items-center gap-2">
+                      <button type="button" className="btn" onClick={async (e) => {
+                        // add empty item
+                        if (!editItem) return;
+                        const next = Array.isArray((editItem as any).checklist) ? [...(editItem as any).checklist] : [];
+                        next.push({ text: 'Nueva tarea', done: false });
+                        const res = await fetch(`/api/tareas/programa/${(editItem as any)._id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ checklist: next }) });
+                        if (res.ok) { const updated = await res.json(); setEditItem(updated); mutate(); }
+                      }}>Añadir</button>
+                      <button type="button" className="btn" onClick={() => setShowCompleted(s => !s)}>{showCompleted ? 'Ocultar completadas' : 'Mostrar completadas'}</button>
+                    </div>
+                  </div>
+                  <div className="space-y-2">
+                    {((editItem as any)?.checklist || []).map((it: any, idx: number) => (
+                      <div key={idx} className={`flex items-center gap-2 p-2 border rounded ${it.done ? 'opacity-60 line-through' : ''}`}>
+                        <input type="checkbox" checked={!!it.done} onChange={async () => {
+                          if (!editItem) return;
+                          // toggle on server by index
+                          const res = await fetch(`/api/tareas/programa/${(editItem as any)._id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ toggleChecklistIndex: idx }) });
+                          if (res.ok) { const updated = await res.json(); setEditItem(updated); mutate(); }
+                        }} />
+                        <input type="text" value={it.text} onChange={(e) => {
+                          // local edit only
+                          const next = JSON.parse(JSON.stringify((editItem as any).checklist || []));
+                          next[idx].text = e.target.value;
+                          setEditItem({ ...(editItem as any), checklist: next });
+                        }} className="flex-1 input" />
+                        <button type="button" className="btn btn-ghost" onClick={async () => {
+                          if (!editItem) return;
+                          const next = JSON.parse(JSON.stringify((editItem as any).checklist || []));
+                          next.splice(idx, 1);
+                          const res = await fetch(`/api/tareas/programa/${(editItem as any)._id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ checklist: next }) });
+                          if (res.ok) { const updated = await res.json(); setEditItem(updated); mutate(); }
+                        }}>Eliminar</button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
                 <div className="pt-3 border-t flex items-center justify-end gap-2">
                   <button type="submit" className="btn btn-primary">Guardar</button>
                   <button type="button" className="btn" onClick={() => setEditOpen(false)}>Cancelar</button>
@@ -589,6 +644,13 @@ export default function TareasPage() {
           </div>
         </div>
       )}
+
+      {/* Toggle to hide completed tasks in the listing */}
+      <div className="mt-4">
+        <label className="flex items-center gap-2 text-sm">
+          <input type="checkbox" checked={showCompleted} onChange={(e) => setShowCompleted(e.target.checked)} /> Mostrar tareas completadas
+        </label>
+      </div>
 
       <div className="flex gap-2">
         <button className="btn btn-primary" onClick={() => setOpenCreateTask(true)}>➕ Nueva tarea</button>

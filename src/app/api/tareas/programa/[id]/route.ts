@@ -16,6 +16,21 @@ export async function PATCH(req: Request, context: any) {
   if ("fotos" in body && Array.isArray(body.fotos)) updates.fotos = body.fotos;
   if ("voluntarioId" in body && body.voluntarioId) updates.voluntarioId = body.voluntarioId;
   if ("ayudanteId" in body) updates.ayudanteId = body.ayudanteId || null;
+  // support full checklist replacement
+  if ("checklist" in body && Array.isArray(body.checklist)) updates.checklist = body.checklist.map((it: any) => ({ text: String(it.text || ''), done: !!it.done }));
+  // support toggling single checklist item by index
+  if ("toggleChecklistIndex" in body && typeof body.toggleChecklistIndex === 'number') {
+    const doc = await Programa.findById(id).lean();
+    if (!doc) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+    const chk = Array.isArray(doc.checklist) ? [...doc.checklist] : [];
+    const idx = body.toggleChecklistIndex;
+    if (idx >= 0 && idx < chk.length) {
+      chk[idx].done = !chk[idx].done;
+      const updated = await Programa.findByIdAndUpdate(id, { checklist: chk }, { new: true }).populate("fichaId").populate("voluntarioId").populate("ayudanteId").lean();
+      if (!updated) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
+      return NextResponse.json(updated);
+    }
+  }
 
   const doc = await Programa.findByIdAndUpdate(id, updates, { new: true })
     .populate("fichaId")

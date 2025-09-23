@@ -10,6 +10,8 @@ const ProgramaSchema = new Schema(
     completadoFecha: { type: Date, index: true },
     notas: { type: String },
     fotos: [{ type: String }],
+    // checklist: array of { text, done }
+    checklist: [{ text: String, done: { type: Boolean, default: false } }],
     created_by: { type: String },
   },
   { timestamps: true }
