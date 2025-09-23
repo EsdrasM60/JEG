@@ -60,6 +60,12 @@ export default function ProjectBitacoraPage() {
 
   const bitacoraEntries = project?.bitacora || [];
 
+  // Edit entry state: abrir modal al hacer click sobre una tarjeta
+  const [editingEntry, setEditingEntry] = useState<BitacoraEntry | null>(null);
+  const [showEditEntry, setShowEditEntry] = useState(false);
+  const [editFecha, setEditFecha] = useState("");
+  const [editNotas, setEditNotas] = useState("");
+
   // client-side image compression util (resize + convert to webp)
   const compressImage = useCallback(async (file: File, maxWidth = 1600, quality = 0.8): Promise<Blob> => {
     // createImageBitmap for efficient decoding
@@ -271,15 +277,20 @@ export default function ProjectBitacoraPage() {
         {bitacoraEntries
           .sort((a, b) => new Date(b.fecha).getTime() - new Date(a.fecha).getTime())
           .map((entry) => (
-          <div key={entry._id} className="card p-6">
-            <div className="flex items-start justify-between mb-4">
-              <div>
-                <h3 className="text-lg font-semibold">{formatDate(entry.fecha)}</h3>
-                <p className="text-sm text-[color:var(--muted)]">
-                  Por {entry.createdBy} • {new Date(entry.createdAt).toLocaleString('es-ES')}
-                </p>
-              </div>
-            </div>
+          <div key={entry._id} className="card p-6 cursor-pointer" onClick={() => {
+            setEditingEntry(entry);
+            setEditFecha(new Date(entry.fecha).toISOString().split('T')[0]);
+            setEditNotas(entry.notas || "");
+            setShowEditEntry(true);
+          }}>
+             <div className="flex items-start justify-between mb-4">
+               <div>
+                 <h3 className="text-lg font-semibold">{formatDate(entry.fecha)}</h3>
+                 <p className="text-sm text-[color:var(--muted)]">
+                   Por {entry.createdBy} • {new Date(entry.createdAt).toLocaleString('es-ES')}
+                 </p>
+               </div>
+             </div>
             
             <div className="mb-4">
               <p className="whitespace-pre-wrap">{entry.notas}</p>
@@ -290,7 +301,7 @@ export default function ProjectBitacoraPage() {
                 <h4 className="font-medium mb-3">Fotos ({entry.fotos.length})</h4>
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
                   {entry.fotos.map((foto, idx) => (
-                    <div key={idx} className="relative group">
+                    <div key={idx} className="relative group" onClick={(e) => e.stopPropagation()}>
                       <img
                         src={foto.thumbId ? `/api/images/${foto.thumbId}?thumb=1` : `/api/images/${foto.mediaId}`}
                         alt={foto.titulo || `Foto ${idx + 1}`}
@@ -311,8 +322,8 @@ export default function ProjectBitacoraPage() {
                 </div>
               </div>
             )}
-          </div>
-        ))}
+           </div>
+         ))}
         
         {bitacoraEntries.length === 0 && (
           <div className="text-center py-12 text-[color:var(--muted)]">
@@ -447,6 +458,70 @@ export default function ProjectBitacoraPage() {
                 disabled={!newEntry.notas.trim() || uploading}
               >
                 {uploading ? "Guardando..." : "Guardar entrada"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Modal para editar entrada existente */}
+      {showEditEntry && editingEntry && (
+        <div className="fixed inset-0 z-50 bg-black/60 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-hidden flex flex-col">
+            <div className="p-6 border-b">
+              <h3 className="text-lg font-semibold">Editar entrada de bitácora</h3>
+            </div>
+            <div className="flex-1 overflow-y-auto p-6 space-y-4">
+              <div>
+                <label className="block text-sm font-medium mb-2">Fecha *</label>
+                <input
+                  type="date"
+                  value={editFecha}
+                  onChange={(e) => setEditFecha(e.target.value)}
+                  className="w-full input"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-2">Notas y observaciones *</label>
+                <textarea
+                  value={editNotas}
+                  onChange={(e) => setEditNotas(e.target.value)}
+                  className="w-full input h-32 resize-none"
+                />
+              </div>
+            </div>
+            <div className="p-6 border-t flex gap-3 justify-end">
+              <button
+                onClick={() => { setShowEditEntry(false); setEditingEntry(null); }}
+                className="btn btn-ghost"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={async () => {
+                  if (!editingEntry) return;
+                  if (!editNotas.trim()) return alert('Notas vacías');
+                  try {
+                    const fechaStored = `${editFecha}T12:00:00Z`;
+                    const updated = { ...editingEntry, fecha: fechaStored, notas: editNotas.trim() };
+                    const updateData: any = { bitacora: bitacoraEntries.map(e => e._id === editingEntry._id ? updated : e) };
+                    const res = await fetch(`/api/proyectos/${projectId}`, {
+                      method: 'PATCH',
+                      headers: { 'content-type': 'application/json' },
+                      body: JSON.stringify(updateData)
+                    });
+                    if (!res.ok) throw new Error(await res.text());
+                    await mutate();
+                    setShowEditEntry(false);
+                    setEditingEntry(null);
+                    alert('Entrada actualizada');
+                  } catch (err: any) {
+                    alert(`Error actualizando: ${err?.message || err}`);
+                  }
+                }}
+                className="btn btn-primary"
+              >
+                Guardar cambios
               </button>
             </div>
           </div>

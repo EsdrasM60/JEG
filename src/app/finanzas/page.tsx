@@ -61,32 +61,76 @@ function PieSummary({ ingresos = 0, gastos = 0 }: { ingresos?: number; gastos?: 
   );
 }
 
-// New: stacked bar chart showing ingresos (green) and gastos (red) per month
+// New: stacked bar chart showing ingresos (amber) and gastos (orange) per month with axes, gridlines and hover tooltip
 function BarChart({ data }: { data: Array<{ label: string; ingresos: number; gastos: number }> }) {
   const maxTotal = Math.max(1, ...data.map(d => Math.abs(d.ingresos) + Math.abs(d.gastos)));
+  const allZero = data.every(d => (!d.ingresos && !d.gastos));
+  const [tooltip, setTooltip] = useState<{ index: number; label: string; type: 'ingresos' | 'gastos'; value: number } | null>(null);
+  const tickCount = 5;
+  const ticks = Array.from({ length: tickCount + 1 }, (_, i) => Math.round((maxTotal * i) / tickCount));
+
   return (
-    <div className="w-full">
-      <div className="flex items-end gap-3 h-56">
-        {data.map((d) => {
-          const ingresosH = Math.round((Math.abs(d.ingresos) / maxTotal) * 100);
-          const gastosH = Math.round((Math.abs(d.gastos) / maxTotal) * 100);
-          return (
-            <div key={d.label} className="flex-1 flex flex-col items-center min-w-[36px]">
-              <div className="text-xs mb-1 truncate w-full text-center">{d.ingresos || d.gastos ? `${formatNumber(d.ingresos)} / ${formatNumber(d.gastos)}` : '—'}</div>
-              <div className="w-full bg-neutral-100 flex flex-col justify-end overflow-hidden rounded" style={{ height: '160px' }}>
-                {/* gastos at bottom */}
-                <div className="w-full" style={{ height: `${gastosH}%`, background: '#fee2e2' }} />
-                {/* ingresos on top of gastos */}
-                <div className="w-full" style={{ height: `${ingresosH}%`, background: '#bbf7d0' }} />
+    <div className="w-full relative">
+      {allZero ? (
+        <div className="w-full h-40 flex items-center justify-center text-sm text-muted">No hay datos para mostrar</div>
+      ) : (
+        <div className="flex gap-4">
+          <div className="flex flex-col items-end pr-3 text-xs text-muted w-16">
+            {ticks.slice().reverse().map((t, i) => (
+              <div key={i} className="h-8 flex items-center">{formatNumber(t)}</div>
+            ))}
+          </div>
+
+          <div className="flex-1">
+            <div className="relative">
+              {/* gridlines via background stripes */}
+              <div className="flex items-end gap-3 h-56">
+                {data.map((d, idx) => {
+                  const rawIngresos = Math.abs(d.ingresos);
+                  const rawGastos = Math.abs(d.gastos);
+                  let ingresosH = Math.round((rawIngresos / maxTotal) * 100);
+                  let gastosH = Math.round((rawGastos / maxTotal) * 100);
+                  if (rawIngresos > 0 && ingresosH < 3) ingresosH = 3;
+                  if (rawGastos > 0 && gastosH < 3) gastosH = 3;
+                  const totalH = ingresosH + gastosH;
+                  if (totalH > 100) {
+                    const scale = 100 / totalH;
+                    ingresosH = Math.max(1, Math.round(ingresosH * scale));
+                    gastosH = Math.max(1, Math.round(gastosH * scale));
+                  }
+                  // SVG works in viewBox units; we'll use 100 height
+                  const gastosH_v = gastosH;
+                  const ingresosH_v = ingresosH;
+                  const gastosY = 100 - gastosH_v;
+                  const ingresosY = 100 - gastosH_v - ingresosH_v;
+
+                  return (
+                    <div key={d.label} className="flex-1 flex flex-col items-center min-w-[40px] relative">
+                      <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-40 bg-neutral-100 rounded border overflow-hidden">
+                        <rect x="0" y={String(gastosY)} width="100" height={String(gastosH_v)} fill="#f59e0b" onMouseEnter={() => setTooltip({ index: idx, label: d.label, type: 'gastos', value: d.gastos })} onMouseLeave={() => setTooltip(null)} />
+                        <rect x="0" y={String(ingresosY)} width="100" height={String(ingresosH_v)} fill="#f97316" onMouseEnter={() => setTooltip({ index: idx, label: d.label, type: 'ingresos', value: d.ingresos })} onMouseLeave={() => setTooltip(null)} />
+                      </svg>
+
+                      {tooltip && tooltip.index === idx && (
+                        <div className="absolute -top-12 left-1/2 transform -translate-x-1/2 z-50 bg-white shadow rounded px-3 py-1 text-sm">
+                          <div className="font-medium">{tooltip.label}</div>
+                          <div>{tooltip.type === 'ingresos' ? 'Ingresos' : 'Gastos'}: {formatNumber(tooltip.value)}</div>
+                        </div>
+                      )}
+
+                      <div className="text-xs mt-2 text-center truncate w-full">{d.label}</div>
+                    </div>
+                  );
+                })}
               </div>
-              <div className="text-xs mt-2 text-center truncate w-full">{d.label}</div>
             </div>
-          );
-        })}
-      </div>
+          </div>
+        </div>
+      )}
+
       <div className="mt-2 text-xs flex justify-between">
-        <div className="flex items-center gap-2"><span className="w-3 h-3 bg-[#bbf7d0] inline-block" /> Ingresos</div>
-        <div className="flex items-center gap-2"><span className="w-3 h-3 bg-[#fee2e2] inline-block" /> Gastos</div>
+        <div className="flex items-center gap-2"><span className="w-3 h-3 bg-[#f97316] inline-block" /> Ingresos</div>
+        <div className="flex items-center gap-2"><span className="w-3 h-3 bg-[#f59e0b] inline-block" /> Gastos</div>
       </div>
     </div>
   );
