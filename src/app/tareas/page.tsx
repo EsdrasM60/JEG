@@ -120,6 +120,7 @@ export default function TareasPage() {
   const [editItem, setEditItem] = useState<Programa | null>(null);
   const [editFotos, setEditFotos] = useState<string[]>([]);
   const [showCompleted, setShowCompleted] = useState(true);
+  const [newChecklistInput, setNewChecklistInput] = useState("");
 
   function openEdit(p: Programa) {
     setEditItem(p);
@@ -597,7 +598,7 @@ export default function TareasPage() {
                   <div className="flex items-center justify-between mb-2">
                     <div className="text-sm font-medium">Checklist</div>
                     <div className="flex items-center gap-2">
-                      <button type="button" className="btn" onClick={async (e) => {
+                      <button type="button" className="btn" onClick={async () => {
                         // add empty item
                         if (!editItem) return;
                         const next = Array.isArray((editItem as any).checklist) ? [...(editItem as any).checklist] : [];
@@ -605,33 +606,79 @@ export default function TareasPage() {
                         const res = await fetch(`/api/tareas/programa/${(editItem as any)._id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ checklist: next }) });
                         if (res.ok) { const updated = await res.json(); setEditItem(updated); mutate(); }
                       }}>Añadir</button>
-                      <button type="button" className="btn" onClick={() => setShowCompleted(s => !s)}>{showCompleted ? 'Ocultar completadas' : 'Mostrar completadas'}</button>
                     </div>
                   </div>
+
                   <div className="space-y-2">
                     {((editItem as any)?.checklist || []).map((it: any, idx: number) => (
-                      <div key={idx} className={`flex items-center gap-2 p-2 border rounded ${it.done ? 'opacity-60 line-through' : ''}`}>
-                        <input type="checkbox" checked={!!it.done} onChange={async () => {
-                          if (!editItem) return;
-                          // toggle on server by index
-                          const res = await fetch(`/api/tareas/programa/${(editItem as any)._id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ toggleChecklistIndex: idx }) });
-                          if (res.ok) { const updated = await res.json(); setEditItem(updated); mutate(); }
-                        }} />
-                        <input type="text" value={it.text} onChange={(e) => {
-                          // local edit only
-                          const next = JSON.parse(JSON.stringify((editItem as any).checklist || []));
-                          next[idx].text = e.target.value;
-                          setEditItem({ ...(editItem as any), checklist: next });
-                        }} className="flex-1 input" />
-                        <button type="button" className="btn btn-ghost" onClick={async () => {
-                          if (!editItem) return;
-                          const next = JSON.parse(JSON.stringify((editItem as any).checklist || []));
-                          next.splice(idx, 1);
-                          const res = await fetch(`/api/tareas/programa/${(editItem as any)._id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ checklist: next }) });
-                          if (res.ok) { const updated = await res.json(); setEditItem(updated); mutate(); }
-                        }}>Eliminar</button>
+                      <div key={idx} className="flex items-center gap-3 p-2 hover:bg-gray-50 rounded group">
+                        <input
+                          type="checkbox"
+                          checked={!!it.done}
+                          onChange={async () => {
+                            if (!editItem) return;
+                            // toggle on server by index
+                            const res = await fetch(`/api/tareas/programa/${(editItem as any)._id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ toggleChecklistIndex: idx }) });
+                            if (res.ok) { const updated = await res.json(); setEditItem(updated); mutate(); }
+                          }}
+                          className="w-4 h-4"
+                        />
+
+                        <span className={`flex-1 ${it.done ? 'line-through opacity-70' : ''}`}>
+                          {it.text}
+                        </span>
+
+                        <button
+                          onClick={async () => {
+                            if (!editItem) return;
+                            const next = JSON.parse(JSON.stringify((editItem as any).checklist || []));
+                            next.splice(idx, 1);
+                            const res = await fetch(`/api/tareas/programa/${(editItem as any)._id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ checklist: next }) });
+                            if (res.ok) { const updated = await res.json(); setEditItem(updated); mutate(); }
+                          }}
+                          className="text-red-600 hover:text-red-800 text-sm opacity-0 group-hover:opacity-100"
+                        >
+                          ✕
+                        </button>
                       </div>
                     ))}
+
+                    {/* Agregar nuevo item (input igual que en lista de verificación) */}
+                    <div className="flex gap-2 mt-3 pt-3 border-t">
+                      <input
+                        type="text"
+                        value={newChecklistInput}
+                        onChange={(e) => setNewChecklistInput(e.target.value)}
+                        className="flex-1 input"
+                        placeholder="Agregar nueva tarea..."
+                        onKeyPress={async (e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            if (!editItem) return;
+                            const text = newChecklistInput.trim();
+                            if (!text) return;
+                            const next = Array.isArray((editItem as any).checklist) ? [...(editItem as any).checklist] : [];
+                            next.push({ text, done: false });
+                            const res = await fetch(`/api/tareas/programa/${(editItem as any)._id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ checklist: next }) });
+                            if (res.ok) { const updated = await res.json(); setEditItem(updated); mutate(); setNewChecklistInput(''); }
+                          }
+                        }}
+                      />
+                      <button
+                        onClick={async () => {
+                          if (!editItem) return;
+                          const text = newChecklistInput.trim();
+                          if (!text) return;
+                          const next = Array.isArray((editItem as any).checklist) ? [...(editItem as any).checklist] : [];
+                          next.push({ text, done: false });
+                          const res = await fetch(`/api/tareas/programa/${(editItem as any)._id}`, { method: 'PATCH', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ checklist: next }) });
+                          if (res.ok) { const updated = await res.json(); setEditItem(updated); mutate(); setNewChecklistInput(''); }
+                        }}
+                        className="btn"
+                      >
+                        Agregar
+                      </button>
+                    </div>
                   </div>
                 </div>
 
