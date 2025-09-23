@@ -395,7 +395,7 @@ export default function FinanzasPage() {
               <select title="Sub Contratista" aria-label="Sub Contratista" value={filters.subContratistaId} onChange={(e)=>setFilters(f=>({ ...f, subContratistaId: e.target.value }))} className="input">
                 <option value="">--Todos--</option>
                 {(subcontractors || []).map((s: any) => (
-                  <option key={s.id || s._id} value={s.id || s._id}>{s.nombre} {s.apellido} {s.empresa ? `(${s.empresa})` : ''}</option>
+                  <option key={s.id || s._id} value={s.id || s._id}>{`${(s.nombre || '').trim()} ${(s.apellido || '').trim()}`.trim() || (s.empresa || '')}</option>
                 ))}
               </select>
             </div>
@@ -588,7 +588,7 @@ export default function FinanzasPage() {
                 <select title="Sub Contratista" aria-label="Sub Contratista" value={form.subContratistaId} onChange={(e)=>setForm(f=>({ ...f, subContratistaId: e.target.value }))} className="input">
                   <option value="">--Seleccionar--</option>
                   {subcontractors.map((s: any) => (
-                    <option key={s.id || s._id} value={s.id || s._id}>{s.nombre} {s.apellido} {s.empresa ? `(${s.empresa})` : ''}</option>
+                    <option key={s.id || s._id} value={s.id || s._id}>{`${(s.nombre || '').trim()} ${(s.apellido || '').trim()}`.trim() || (s.empresa || '')}</option>
                   ))}
                 </select>
               </div>
