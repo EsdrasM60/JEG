@@ -181,8 +181,12 @@ export default function FinanzasPage() {
   const dateRef = useRef<HTMLInputElement | null>(null);
 
   const { data: summary } = useSWR('/api/finanzas/summary', fetcher);
-  const entriesKey = `/api/finanzas?desde=${filters.desde}&hasta=${filters.hasta}&categoria=${encodeURIComponent(filters.categoria)}&subContratistaId=${filters.subContratistaId}&tipo=${encodeURIComponent(filters.tipo)}&proyectoId=${encodeURIComponent(filters.proyectoId)}`;
-  const { data: entries } = useSWR(entriesKey, fetcher, { revalidateOnFocus: false });
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(25);
+  const entriesKey = `/api/finanzas?desde=${filters.desde}&hasta=${filters.hasta}&categoria=${encodeURIComponent(filters.categoria)}&subContratistaId=${filters.subContratistaId}&tipo=${encodeURIComponent(filters.tipo)}&proyectoId=${encodeURIComponent(filters.proyectoId)}&page=${page}&pageSize=${pageSize}`;
+  const { data: entriesResp } = useSWR(entriesKey, fetcher, { revalidateOnFocus: false });
+  const entries = entriesResp?.items || [];
+  const total = entriesResp?.total || 0;
   const { data: voluntarios } = useSWR('/api/voluntarios', fetcher);
   const { data: proyectosResp } = useSWR('/api/proyectos?page=1&pageSize=100', fetcher);
   // select employees whose cargo indicates they are subcontractors (covers 'Contratista', 'subcontratista', etc.)
@@ -252,6 +256,11 @@ export default function FinanzasPage() {
       setTimeout(() => { try { dateRef.current?.focus(); } catch {} }, 0);
     }
   }, [modalOpen]);
+
+  // reset to first page when filters or pageSize change
+  useEffect(() => {
+    setPage(1);
+  }, [filters.desde, filters.hasta, filters.categoria, filters.subContratistaId, filters.tipo, filters.proyectoId, pageSize]);
 
   // Revalidate entries and summary whenever filters change so filtering is reactive and summary matches the list
   React.useEffect(() => {
@@ -459,7 +468,7 @@ export default function FinanzasPage() {
         </div>
 
         <div className="mt-4 overflow-auto">
-          <table className="table-auto w-full">
+          <table className="w-full text-base">
             <thead>
               <tr>
                 <th className="text-left p-2">Fecha</th>
@@ -505,6 +514,24 @@ export default function FinanzasPage() {
              })}
             </tbody>
           </table>
+        </div>
+
+        {/* Pagination controls */}
+        <div className="mt-3 flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            <button className="btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>Anterior</button>
+            <button className="btn" onClick={() => setPage(p => p + 1)} disabled={page * pageSize >= total}>Siguiente</button>
+            <div className="text-sm text-muted">Página {page} de {Math.max(1, Math.ceil(total / pageSize))} — {total} registros</div>
+          </div>
+          <div className="flex items-center gap-2">
+            <label className="text-sm">Registros por página</label>
+            <select value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))} className="input text-sm">
+              <option value={10}>10</option>
+              <option value={25}>25</option>
+              <option value={50}>50</option>
+              <option value={100}>100</option>
+            </select>
+          </div>
         </div>
       </section>
 

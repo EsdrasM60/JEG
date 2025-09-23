@@ -12,6 +12,8 @@ export async function GET(req: Request) {
     const subContratistaId = url.searchParams.get("subContratistaId");
     const tipo = url.searchParams.get("tipo");
     const proyectoId = url.searchParams.get("proyectoId");
+    const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1);
+    const pageSize = Math.min(1000, Math.max(1, parseInt(url.searchParams.get('pageSize') || '25', 10) || 25));
 
     const q: any = {};
     if (categoria) q.categoria = { $regex: new RegExp(categoria, "i") };
@@ -29,8 +31,11 @@ export async function GET(req: Request) {
       q.fecha.$lte = isDateOnly ? new Date(`${hasta}T23:59:59Z`) : new Date(hasta);
     }
 
-    const entries = await FinanceEntry.find(q).sort({ fecha: -1 }).limit(100).lean();
-    return NextResponse.json(entries);
+    // total matching documents for pagination
+    const total = await FinanceEntry.countDocuments(q);
+    const skip = (page - 1) * pageSize;
+    const items = await FinanceEntry.find(q).sort({ fecha: -1 }).skip(skip).limit(pageSize).lean();
+    return NextResponse.json({ items, total, page, pageSize });
   } catch (e: any) {
     console.error(e);
     return NextResponse.json({ error: 'Unexpected' }, { status: 500 });
