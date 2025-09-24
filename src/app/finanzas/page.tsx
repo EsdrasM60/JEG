@@ -255,6 +255,59 @@ export default function FinanzasPage() {
   const gastosAnio = resumenAnual?.totalGastos || 0;
   const balanceAnio = ingresosAnio - gastosAnio;
 
+  // porcentajes para la barra horizontal (evita inline styles)
+  const totalAnio = (ingresosAnio + gastosAnio) || 1;
+  const ingresosPct = Math.round((ingresosAnio / totalAnio) * 10000) / 100; // 2 decimales
+  const gastosPct = Math.round((gastosAnio / totalAnio) * 10000) / 100;
+
+  // Nuevo: CxC / CxP - obtener todas las entradas de INGRESO y GASTO (pageSize grande para listar)
+  // Usar endpoints específicos que implementamos: /api/finanzas/cxc y /api/finanzas/cxp
+  const { data: cxcResp } = useSWR('/api/finanzas/cxc?desde=' + (filters.desde||'') + '&hasta=' + (filters.hasta||''), fetcher);
+  const { data: cxpResp } = useSWR('/api/finanzas/cxp?desde=' + (filters.desde||'') + '&hasta=' + (filters.hasta||''), fetcher);
+  // Fallback totals for non-admin users: endpoint cuentas returns combined totals without auth
+  const { data: cuentasTotals } = useSWR('/api/finanzas/cuentas?desde=' + (filters.desde||'') + '&hasta=' + (filters.hasta||''), fetcher);
+  const cxcEntries = cxcResp?.items || [];
+  const cxpEntries = cxpResp?.items || [];
+  const cuentasIngresos = cuentasTotals?.totalIngresos ?? undefined;
+  const cuentasGastos = cuentasTotals?.totalGastos ?? undefined;
+
+  // Agregar agregaciones simples: totales por proyecto y por subcontratista
+  const cxcByProject = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const e of cxcEntries) {
+      const key = (e.proyectoId || 'sin-proyecto');
+      m.set(key, (m.get(key) || 0) + (Number(e.monto) || 0));
+    }
+    return Array.from(m.entries()).map(([k, v]) => ({ key: k, total: v }));
+  }, [cxcEntries]);
+
+  const cxpByProject = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const e of cxpEntries) {
+      const key = (e.proyectoId || 'sin-proyecto');
+      m.set(key, (m.get(key) || 0) + (Number(e.monto) || 0));
+    }
+    return Array.from(m.entries()).map(([k, v]) => ({ key: k, total: v }));
+  }, [cxpEntries]);
+
+  const cxcBySub = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const e of cxcEntries) {
+      const key = (e.subContratistaId || 'sin-sub');
+      m.set(key, (m.get(key) || 0) + (Number(e.monto) || 0));
+    }
+    return Array.from(m.entries()).map(([k, v]) => ({ key: k, total: v }));
+  }, [cxcEntries]);
+
+  const cxpBySub = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const e of cxpEntries) {
+      const key = (e.subContratistaId || 'sin-sub');
+      m.set(key, (m.get(key) || 0) + (Number(e.monto) || 0));
+    }
+    return Array.from(m.entries()).map(([k, v]) => ({ key: k, total: v }));
+  }, [cxpEntries]);
+
   useEffect(() => {
     // initialize fecha default on modal open and focus date input
     if (modalOpen) {
@@ -354,8 +407,10 @@ export default function FinanzasPage() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Finanzas</h1>
         <div className="flex items-center gap-2">
-          <button className="btn" onClick={() => setShowFilters(s => !s)} aria-expanded={showFilters ? 'true' : 'false'}>{showFilters ? 'Ocultar filtros' : 'Filtros'}</button>
+          <button className="btn" onClick={() => setShowFilters(s => !s)}>{showFilters ? 'Ocultar filtros' : 'Filtros'}</button>
           <button className="btn btn-primary" onClick={() => setModalOpen(true)}>Nuevo</button>
+          <a href="#cxc" className="btn" title="Ir a Cuenta por Cobrar">CxC</a>
+          <a href="#cxp" className="btn" title="Ir a Cuenta por Pagar">CxP</a>
         </div>
       </div>
 
@@ -373,15 +428,72 @@ export default function FinanzasPage() {
           </div>
           <div className="flex-1 flex flex-col items-center">
             {/* Barra horizontal */}
-            <div className="w-full max-w-xs bg-neutral-100 rounded h-8 flex overflow-hidden border">
-              <div style={{ width: `${ingresosAnio/(ingresosAnio+gastosAnio+1e-6)*100}%`, background: '#16a34a' }} className="h-full" title="Ingresos" />
-              <div style={{ width: `${gastosAnio/(ingresosAnio+gastosAnio+1e-6)*100}%`, background: '#dc2626' }} className="h-full" title="Gastos" />
-            </div>
-            <div className="flex justify-between w-full max-w-xs text-xs mt-1">
-              <span className="text-green-700">Ingresos</span>
-              <span className="text-red-700">Gastos</span>
-            </div>
+            <svg viewBox="0 0 100 8" className="w-full max-w-xs bg-neutral-100 rounded h-8 border overflow-hidden" role="img" aria-label={`Distribución anual: ingresos ${formatNumber(ingresosAnio)}, gastos ${formatNumber(gastosAnio)}`}>
+              <rect x="0" y="0" width={String(ingresosPct)} height="8" fill="#16a34a" />
+              <rect x={String(ingresosPct)} y="0" width={String(gastosPct)} height="8" fill="#dc2626" />
+            </svg>
+
             <div className="text-xs mt-1">Balance: <b className={balanceAnio>=0?'text-green-700':'text-red-700'}>{formatNumber(balanceAnio)}</b></div>
+          </div>
+        </div>
+      </section>
+
+      {/* Nuevo: CxC / CxP */}
+      <section className="mt-6">
+        <h2 className="text-lg font-semibold mb-3">Cuentas: CxC / CxP</h2>
+        <div className="grid md:grid-cols-2 gap-6">
+          <div id="cxc">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-medium">Cuenta por Cobrar (CxC)</h3>
+              <div className="text-sm text-muted">Total: <strong>{formatNumber(cuentasIngresos ?? cxcEntries.reduce((s: number, x: any) => s + (Number(x.monto) || 0), 0))}</strong></div>
+            </div>
+            <div className="overflow-auto max-h-64 border rounded">
+              <table className="w-full text-sm">
+                <thead className="bg-neutral-50 text-left">
+                  <tr>
+                    <th className="p-2">Proyecto</th>
+                    <th className="p-2 text-right">Total</th>
+                    <th className="p-2">Sub Contratista</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cxcByProject.map((p:any) => (
+                    <tr key={p.key} className="border-t">
+                      <td className="p-2">{proyectoMap.get(String(p.key)) || (p.key === 'sin-proyecto' ? 'Sin proyecto' : p.key)}</td>
+                      <td className="p-2 text-right">{formatNumber(p.total)}</td>
+                      <td className="p-2">{(cxcBySub.find(s => String(s.key) === String(p.key)) ? subcontractorMap.get(String(cxcBySub.find(s => String(s.key) === String(p.key))!.key)) : '-') || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div id="cxp">
+            <div className="flex items-center justify-between mb-2">
+              <h3 className="font-medium">Cuenta por Pagar (CxP)</h3>
+              <div className="text-sm text-muted">Total: <strong>{formatNumber(cuentasGastos ?? cxpEntries.reduce((s: number, x: any) => s + (Number(x.monto) || 0), 0))}</strong></div>
+            </div>
+            <div className="overflow-auto max-h-64 border rounded">
+              <table className="w-full text-sm">
+                <thead className="bg-neutral-50 text-left">
+                  <tr>
+                    <th className="p-2">Proyecto</th>
+                    <th className="p-2 text-right">Total</th>
+                    <th className="p-2">Sub Contratista</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {cxpByProject.map((p:any) => (
+                    <tr key={p.key} className="border-t">
+                      <td className="p-2">{proyectoMap.get(String(p.key)) || (p.key === 'sin-proyecto' ? 'Sin proyecto' : p.key)}</td>
+                      <td className="p-2 text-right">{formatNumber(p.total)}</td>
+                      <td className="p-2">{(cxpBySub.find(s => String(s.key) === String(p.key)) ? subcontractorMap.get(String(cxpBySub.find(s => String(s.key) === String(p.key))!.key)) : '-') || '-'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       </section>
@@ -558,7 +670,7 @@ export default function FinanzasPage() {
           </div>
           <div className="flex items-center gap-2">
             <label className="text-sm">Registros por página</label>
-            <select value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))} className="input text-sm">
+            <select title="Registros por página" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))} className="input text-sm">
               <option value={10}>10</option>
               <option value={25}>25</option>
               <option value={50}>50</option>
