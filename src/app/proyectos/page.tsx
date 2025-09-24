@@ -41,6 +41,8 @@ export default function ProyectosPage() {
   const { data: voluntariosResp } = useSWR<any>("/api/voluntarios", fetcher);
   const [q, setQ] = useState("");
   const [open, setOpen] = useState(false);
+  const [estadoFilter, setEstadoFilter] = useState<'TODOS' | 'PLANIFICADO' | 'EN_PROGRESO' | 'EN_PAUSA' | 'COMPLETADO'>('TODOS');
+  const [hideCompleted, setHideCompleted] = useState(false);
 
   const proyectos = useMemo(() => (data?.items || []), [data]);
   const voluntarios = useMemo(() => {
@@ -58,17 +60,19 @@ export default function ProyectosPage() {
     return m;
   }, [voluntarios]);
 
-  // Lista filtrada para búsqueda
+  // Lista filtrada por búsqueda, estado y opción de ocultar completados
   const visibles = useMemo(() => {
     const query = q.trim().toLowerCase();
     return (proyectos || []).filter((p) => {
+      if (hideCompleted && p.estado === 'COMPLETADO') return false;
+      if (estadoFilter !== 'TODOS' && p.estado !== estadoFilter) return false;
       if (!query) return true;
       return (
         (p.titulo || "").toLowerCase().includes(query) ||
         (p.descripcion || "").toLowerCase().includes(query)
       );
     });
-  }, [proyectos, q]);
+  }, [proyectos, q, estadoFilter, hideCompleted]);
 
   // Utilidades para formato y progreso
   function fmtDate(d?: string | null) {
@@ -156,7 +160,7 @@ export default function ProyectosPage() {
       if (!res.ok) continue;
       const json = await res.json();
       const thumbUrl = `/api/images/${json.thumbId}?thumb=1`;
-      setEvidencias(prev => [...prev, { mediaId: json.id, thumbId: json.thumbId, titulo: file.name, puntos: [], thumbUrl }]);
+      setEvidencias(prev => [...prev, { mediaId: json.id, thumbId: json.thumbId, titulo: file.name, puntos: ev.puntos, thumbUrl }]);
     }
     e.currentTarget.value = "";
   }
@@ -198,8 +202,23 @@ export default function ProyectosPage() {
         <h1 className="text-2xl font-bold">Proyectos</h1>
         <button className="btn btn-primary" title="Nuevo proyecto" onClick={() => setOpen(true)}>Nuevo</button>
       </div>
-      <div>
-        <input className="w-full input" placeholder="Buscar proyectos..." value={q} onChange={(e)=>setQ(e.target.value)} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-center">
+        <div className="md:col-span-2">
+          <input className="w-full input" placeholder="Buscar proyectos..." value={q} onChange={(e)=>setQ(e.target.value)} aria-label="Buscar proyectos" />
+        </div>
+        <div className="flex items-center gap-2 justify-end">
+          <select aria-label="Filtrar por estado" className="input" value={estadoFilter} onChange={(e)=>setEstadoFilter(e.target.value as any)}>
+            <option value="TODOS">Todos los estados</option>
+            <option value="PLANIFICADO">Sin empezar</option>
+            <option value="EN_PROGRESO">En curso</option>
+            <option value="EN_PAUSA">En pausa</option>
+            <option value="COMPLETADO">Completado</option>
+          </select>
+          <label className="flex items-center gap-2 text-sm">
+            <input type="checkbox" checked={hideCompleted} onChange={(e)=>setHideCompleted(e.target.checked)} />
+            <span>Ocultar completados</span>
+          </label>
+        </div>
       </div>
       {visibles.length === 0 ? (
         <div className="text-sm text-[color:var(--muted)]">Sin proyectos.</div>
@@ -248,7 +267,10 @@ export default function ProyectosPage() {
                 </div>
                 <div className="flex flex-col items-end gap-2 min-w-[160px]">
                   <div className="w-36 sm:w-48">
-                    <div className="progress"><span style={{ width: `${percent(p)}%` }} /></div>
+                    <div className="progress h-3 bg-neutral-100 rounded overflow-hidden">
+                      {/* use Tailwind arbitrary value for width to avoid inline styles */}
+                      <span className={`block h-full bg-[color:var(--brand)] w-[${percent(p)}%]`} />
+                    </div>
                     <div className="mt-1 text-right text-xs text-[color:var(--muted)]">{percent(p)}%</div>
                   </div>
                   <div className="flex items-center gap-2 mt-1 flex-wrap justify-end">
@@ -267,10 +289,9 @@ export default function ProyectosPage() {
                     >
                       Configurar
                     </Link>
-                    <button 
-                      className="btn text-sm" 
-                      style={{ borderColor: "#ef444455", color: "#ef4444" }} 
-                      title="Eliminar" 
+                    <button
+                      className="btn text-sm border-red-200 text-red-600"
+                      title="Eliminar"
                       onClick={(e)=>{ e.stopPropagation(); remove(p._id); }}
                     >
                       Eliminar
@@ -325,14 +346,14 @@ export default function ProyectosPage() {
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <div className="space-y-1.5">
                       <label className="text-sm">Supervisor</label>
-                      <select name="voluntarioId" className="select" defaultValue="">
+                      <select name="voluntarioId" className="select" defaultValue="" title="Supervisor">
                         <option value="">Sin asignar</option>
                         {voluntarios.map((v) => (<option key={v._id || v.id} value={v._id || v.id}>{v.nombre} {v.apellido}</option>))}
                       </select>
                     </div>
                     <div className="space-y-1.5">
                       <label className="text-sm">Técnico</label>
-                      <select name="ayudanteId" className="select" defaultValue="">
+                      <select name="ayudanteId" className="select" defaultValue="" title="Técnico">
                         <option value="">Sin asignar</option>
                         {voluntarios.map((v) => (<option key={v._id || v.id} value={v._id || v.id}>{v.nombre} {v.apellido}</option>))}
                       </select>
@@ -343,7 +364,7 @@ export default function ProyectosPage() {
                 {/* Evidencias iniciales */}
                 <div className="space-y-2">
                   <div className="font-medium">Evidencias iniciales (opcional)</div>
-                  <input ref={fileRefCreate} type="file" accept="image/*" multiple onChange={onUploadChange} className="hidden" />
+                  <input ref={fileRefCreate} type="file" accept="image/*" multiple onChange={onUploadChange} className="hidden" title="Seleccionar imágenes" aria-label="Seleccionar imágenes" />
                   <button type="button" onClick={()=>fileRefCreate.current?.click()} className="btn btn-ghost" title="Seleccionar fotos">Agregar fotos</button>
                   {evidencias.length > 0 && (
                     <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -352,7 +373,7 @@ export default function ProyectosPage() {
                           <img src={ev.thumbUrl} alt={ev.titulo || "evidencia"} className="w-full h-32 object-cover rounded" />
                           <input value={ev.titulo || ""} onChange={(e)=>actualizarTitulo(idx, e.target.value)} className="w-full input text-sm" placeholder="Título de la foto" />
                           <textarea onChange={(e)=>actualizarPuntos(idx, e.target.value)} className="w-full textarea text-sm min-h-[60px]" placeholder="Puntos a tratar (uno por línea)"></textarea>
-                          <button type="button" className="text-sm" style={{ color: "#ef4444" }} onClick={()=>quitarEvidencia(idx)}>Quitar</button>
+                          <button type="button" className="text-sm text-red-600" onClick={()=>quitarEvidencia(idx)}>Quitar</button>
                         </div>
                       ))}
                     </div>
