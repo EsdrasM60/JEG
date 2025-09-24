@@ -150,6 +150,7 @@ export default function TareasPage() {
     const payload: any = {
       voluntarioId: fd.get("voluntarioId") || (editItem as any).voluntarioId?._id || (editItem as any).voluntarioId?.id,
       ayudanteId: fd.get("ayudanteId") || "",
+      asignadoFecha: fd.get("asignadoFecha") || null,
       completadoFecha: fd.get("completadoFecha") || null,
       notas: fd.get("notas") || null,
       fotos: editFotos,
@@ -357,7 +358,7 @@ export default function TareasPage() {
                           </div>
                           <div className="mb-2 text-lg font-bold">{fmt(p.completadoFecha || p.asignadoFecha)}</div>
                           {p.notas ? (
-                            <div className="text-[color:var(--foreground)]/90 whitespace-pre-wrap" style={{wordBreak:'break-word'}}>{p.notas}</div>
+                            <div className="text-[color:var(--foreground)]/90 whitespace-pre-wrap break-words">{p.notas}</div>
                           ) : null}
                           {Array.isArray((p as any).fotos) && (p as any).fotos.length ? (
                             <div className="mt-2 flex flex-wrap gap-2">
@@ -426,7 +427,7 @@ export default function TareasPage() {
                       </div>
                       <div className="mb-2 text-lg font-bold">{fmt(p.completadoFecha || p.asignadoFecha)}</div>
                       {p.notas ? (
-                        <div className="text-[color:var(--foreground)]/90 whitespace-pre-wrap" style={{wordBreak:'break-word'}}>{p.notas}</div>
+                        <div className="text-[color:var(--foreground)]/90 whitespace-pre-wrap break-words">{p.notas}</div>
                       ) : null}
                       {Array.isArray((p as any).fotos) && (p as any).fotos.length ? (
                         <div className="mt-2 flex flex-wrap gap-2">
@@ -483,11 +484,11 @@ export default function TareasPage() {
                 </div>
                 <div className="mt-4">
                   <div className="text-sm">Debe cumplir con la asignación para</div>
-                  <input type="date" name="asignadoFecha" className="input mt-1" required />
+                  <input type="date" name="asignadoFecha" title="Fecha que se debe completar" className="input mt-1" required />
                 </div>
                 <div className="mt-4">
                   <div className="text-sm mb-1">Notas</div>
-                  <textarea name="notas" className="w-full textarea min-h-[120px]" />
+                  <textarea name="notas" title="Notas" placeholder="Notas..." className="w-full textarea min-h-[120px]" />
                 </div>
                 <div className="mt-4">
                   <div className="text-sm mb-1">Fotos</div>
@@ -538,14 +539,14 @@ export default function TareasPage() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <label className="block text-sm mb-1">Asignado a (Supervisor)</label>
-                    <select name="voluntarioId" className="w-full border rounded px-2 py-1" defaultValue={(editItem as any).voluntarioId?._id || (editItem as any).voluntarioId?.id || ""} required>
+                    <select name="voluntarioId" title="Asignado a (Supervisor)" className="w-full border rounded px-2 py-1" defaultValue={(editItem as any).voluntarioId?._id || (editItem as any).voluntarioId?.id || ""} required>
                       <option value="" disabled>No seleccionado</option>
                       {voluntarios.map((v) => (<option key={v._id || (v as any).id} value={v._id || (v as any).id}>{v.nombre} {v.apellido}</option>))}
                     </select>
                   </div>
                   <div>
                     <label className="block text-sm mb-1">Técnico</label>
-                    <select name="ayudanteId" className="w-full border rounded px-2 py-1" defaultValue={(editItem as any).ayudanteId?._id || (editItem as any).ayudanteId?.id || ""}>
+                    <select name="ayudanteId" title="Técnico" className="w-full border rounded px-2 py-1" defaultValue={(editItem as any).ayudanteId?._id || (editItem as any).ayudanteId?.id || ""}>
                       <option value="">No seleccionado</option>
                       {voluntarios.map((v) => (<option key={v._id || (v as any).id} value={v._id || (v as any).id}>{v.nombre} {v.apellido}</option>))}
                     </select>
@@ -555,22 +556,26 @@ export default function TareasPage() {
                 <div className="grid gap-3 sm:grid-cols-2">
                   <div>
                     <div className="text-sm text-neutral-800">Fecha en que se asignó</div>
-                    <div className="text-base font-medium mt-1">{fmt((editItem as any).createdAt || (editItem as any).asignadoFecha)}</div>
+                    <div className="mt-1">
+                      <div className="text-xs text-[color:var(--muted)]">Creada: {fmt((editItem as any).createdAt)}</div>
+                    </div>
                   </div>
                   <div>
                     <div className="text-sm text-neutral-800">Debe cumplir con la asignación para</div>
-                    <div className="text-2xl font-bold mt-1">{fmt((editItem as any).asignadoFecha)}</div>
+                    <div className="mt-1">
+                      <input type="date" name="asignadoFecha" title="Fecha que se debe completar" className="border rounded px-2 py-1 mt-1 text-2xl font-bold w-full" defaultValue={(editItem as any).asignadoFecha ? String((editItem as any).asignadoFecha).slice(0,10) : ""} />
+                    </div>
                   </div>
                 </div>
 
                 <div>
                   <div className="text-sm text-neutral-800">Fecha que se completó</div>
-                  <input type="date" name="completadoFecha" className="border rounded px-2 py-1 mt-1" defaultValue={(editItem as any).completadoFecha ? String((editItem as any).completadoFecha).slice(0,10) : ""} />
+                  <input type="date" name="completadoFecha" title="Fecha de completado" className="border rounded px-2 py-1 mt-1" defaultValue={(editItem as any).completadoFecha ? String((editItem as any).completadoFecha).slice(0,10) : ""} />
                 </div>
 
                 <div>
                   <div className="text-sm text-neutral-800 mb-1">Notas</div>
-                  <textarea name="notas" className="w-full border rounded px-3 py-2 min-h-[100px]" defaultValue={(editItem as any).notas || ""} />
+                  <textarea name="notas" title="Notas" placeholder="Notas..." className="w-full border rounded px-3 py-2 min-h-[100px]" defaultValue={(editItem as any).notas || ""} />
                 </div>
 
                 <div>
@@ -650,6 +655,7 @@ export default function TareasPage() {
                         value={newChecklistInput}
                         onChange={(e) => setNewChecklistInput(e.target.value)}
                         className="flex-1 input"
+                        title="Agregar nueva tarea"
                         placeholder="Agregar nueva tarea..."
                         onKeyPress={async (e) => {
                           if (e.key === 'Enter') {
@@ -743,28 +749,28 @@ export default function TareasPage() {
                 <div className="grid gap-3 sm:grid-cols-3">
                   <div>
                     <label className="text-sm">Fecha de asignación *</label>
-                    <input type="date" name="asignadoFecha" className={`input mt-1 ${taskErrors.asignadoFecha ? 'border-red-500 ring-1 ring-red-300' : ''}`} />
+                    <input type="date" name="asignadoFecha" title="Fecha de asignación" className={`input mt-1 ${taskErrors.asignadoFecha ? 'border-red-500 ring-1 ring-red-300' : ''}`} />
                     {taskErrors.asignadoFecha && <div className="text-sm text-red-500 mt-1">{taskErrors.asignadoFecha}</div>}
                   </div>
                   <div>
                     <label className="text-sm">Fecha inicio</label>
-                    <input type="date" name="startDate" className="input mt-1" />
+                    <input type="date" name="startDate" title="Fecha inicio" className="input mt-1" />
                   </div>
                   <div>
                     <label className="text-sm">Fecha fin</label>
-                    <input type="date" name="endDate" className="input mt-1" />
+                    <input type="date" name="endDate" title="Fecha fin" className="input mt-1" />
                   </div>
                 </div>
 
                 <div>
                   <label className="block text-sm mb-1">Notas</label>
-                  <textarea name="notas" className="w-full textarea min-h-[120px]" />
+                  <textarea name="notas" title="Notas" placeholder="Notas..." className="w-full textarea min-h-[120px]" />
                 </div>
 
                 <div>
                   <label className="block text-sm mb-1">Proyecto (opcional)</label>
                   <div className="flex gap-2 items-center">
-                    <select name="projectId" className="select flex-1" defaultValue="">
+                    <select name="projectId" title="Proyecto (opcional)" className="select flex-1" defaultValue="">
                       <option value="">No vinculado</option>
                       {proyectos.map((pr) => (<option key={pr._id} value={pr._id}>{pr.titulo}</option>))}
                     </select>

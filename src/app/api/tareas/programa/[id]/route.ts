@@ -20,9 +20,9 @@ export async function PATCH(req: Request, context: any) {
   if ("checklist" in body && Array.isArray(body.checklist)) updates.checklist = body.checklist.map((it: any) => ({ text: String(it.text || ''), done: !!it.done }));
   // support toggling single checklist item by index
   if ("toggleChecklistIndex" in body && typeof body.toggleChecklistIndex === 'number') {
-    const doc = await Programa.findById(id).lean();
+    const doc: any = await Programa.findById(id).lean();
     if (!doc) return NextResponse.json({ error: "No encontrado" }, { status: 404 });
-    const chk = Array.isArray(doc.checklist) ? [...doc.checklist] : [];
+    const chk = Array.isArray(doc.checklist) ? [...(doc.checklist as any[])] : [];
     const idx = body.toggleChecklistIndex;
     if (idx >= 0 && idx < chk.length) {
       chk[idx].done = !chk[idx].done;
