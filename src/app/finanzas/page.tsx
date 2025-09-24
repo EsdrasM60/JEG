@@ -249,6 +249,12 @@ export default function FinanzasPage() {
     return byCat;
   }, [entries, filters.tipo]);
 
+  // Nuevo: resumen anual (sin filtros)
+  const { data: resumenAnual } = useSWR('/api/finanzas/summary?desde=' + new Date(new Date().getFullYear(),0,1).toISOString().slice(0,10) + '&hasta=' + new Date(new Date().getFullYear(),11,31).toISOString().slice(0,10), fetcher);
+  const ingresosAnio = resumenAnual?.totalIngresos || 0;
+  const gastosAnio = resumenAnual?.totalGastos || 0;
+  const balanceAnio = ingresosAnio - gastosAnio;
+
   useEffect(() => {
     // initialize fecha default on modal open and focus date input
     if (modalOpen) {
@@ -352,6 +358,33 @@ export default function FinanzasPage() {
           <button className="btn btn-primary" onClick={() => setModalOpen(true)}>Nuevo</button>
         </div>
       </div>
+
+      {/* Resumen anual pastel y barra */}
+      <section className="mt-6 mb-6">
+        <h2 className="text-lg font-semibold mb-2">Resumen anual ({new Date().getFullYear()})</h2>
+        <div className="flex flex-col md:flex-row gap-6 items-center">
+          <div className="flex flex-col items-center gap-2">
+            <PieChart slices={[
+              { label: 'Ingresos', value: ingresosAnio, color: '#16a34a' },
+              { label: 'Gastos', value: gastosAnio, color: '#dc2626' },
+              { label: 'Balance', value: Math.max(0, balanceAnio), color: '#0ea5e9' },
+            ]} size={120} />
+            <div className="text-xs text-muted">Ingresos: <b>{formatNumber(ingresosAnio)}</b> | Gastos: <b>{formatNumber(gastosAnio)}</b> | Balance: <b>{formatNumber(balanceAnio)}</b></div>
+          </div>
+          <div className="flex-1 flex flex-col items-center">
+            {/* Barra horizontal */}
+            <div className="w-full max-w-xs bg-neutral-100 rounded h-8 flex overflow-hidden border">
+              <div style={{ width: `${ingresosAnio/(ingresosAnio+gastosAnio+1e-6)*100}%`, background: '#16a34a' }} className="h-full" title="Ingresos" />
+              <div style={{ width: `${gastosAnio/(ingresosAnio+gastosAnio+1e-6)*100}%`, background: '#dc2626' }} className="h-full" title="Gastos" />
+            </div>
+            <div className="flex justify-between w-full max-w-xs text-xs mt-1">
+              <span className="text-green-700">Ingresos</span>
+              <span className="text-red-700">Gastos</span>
+            </div>
+            <div className="text-xs mt-1">Balance: <b className={balanceAnio>=0?'text-green-700':'text-red-700'}>{formatNumber(balanceAnio)}</b></div>
+          </div>
+        </div>
+      </section>
 
       {showFilters && (
         <section className="mt-4 border p-3 rounded bg-[color:var(--surface)]">
