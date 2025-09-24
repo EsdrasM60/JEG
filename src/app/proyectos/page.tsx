@@ -160,7 +160,7 @@ export default function ProyectosPage() {
       if (!res.ok) continue;
       const json = await res.json();
       const thumbUrl = `/api/images/${json.thumbId}?thumb=1`;
-      setEvidencias(prev => [...prev, { mediaId: json.id, thumbId: json.thumbId, titulo: file.name, puntos: ev.puntos, thumbUrl }]);
+      setEvidencias(prev => [...prev, { mediaId: json.id, thumbId: json.thumbId, titulo: file.name, puntos: [], thumbUrl }]);
     }
     e.currentTarget.value = "";
   }
