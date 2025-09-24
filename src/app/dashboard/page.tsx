@@ -34,11 +34,27 @@ export default async function DashboardPage() {
     if (id) volMap.set(id, `${v.nombre || ""} ${v.apellido || ""}`.trim());
   });
 
+  // If not admin, compute volunteer IDs that match current session user name so we can filter programas/proyectos server-side
+  const currentName = (userName || "").trim().toLowerCase();
+  const userVolunteerIds = new Set<string>();
+  if (!isAdmin && currentName && Array.isArray(volList)) {
+    for (const v of volList) {
+      const id = String(v._id || v.id || "");
+      const full = `${v.nombre || ""} ${v.apellido || ""}`.trim().toLowerCase();
+      if (!id) continue;
+      if (!full) continue;
+      // consider exact match or contains
+      if (full === currentName || full.includes(currentName) || currentName.includes(full)) {
+        userVolunteerIds.add(id);
+      }
+    }
+  }
+
   // Proyectos resumen
   const urlPro = `${base}/api/proyectos?page=1&pageSize=100`;
   const resPro = await fetch(urlPro, { next: { revalidate: 30 } }).catch(() => null);
   const dataPro = (await resPro?.json().catch(() => null)) as { items?: any[] } | null;
-  const proyectos = (dataPro?.items || []).map((p: any) => ({
+  const proyectosAll = (dataPro?.items || []).map((p: any) => ({
     _id: String(p._id),
     titulo: p.titulo as string,
     descripcion: p.descripcion ?? null,
@@ -49,6 +65,36 @@ export default async function DashboardPage() {
     fechaFin: p.fechaFin ?? null,
     checklist: Array.isArray(p.checklist) ? p.checklist : [],
   }));
+
+  // Apply server-side filtering for proyectos and programas: non-admins only see items where they are voluntario/ayudante
+  const proyectos = isAdmin
+    ? proyectosAll
+    : proyectosAll.filter((p) => {
+        const full = currentName;
+        const volName = (p.voluntario || "").toLowerCase();
+        const ayudName = (p.ayudante || "").toLowerCase();
+        if (volName && (volName === full || volName.includes(full) || full.includes(volName))) return true;
+        if (ayudName && (ayudName === full || ayudName.includes(full) || full.includes(ayudName))) return true;
+        return false;
+      });
+
+  const programasFiltered = isAdmin
+    ? programas
+    : programas.filter((it: any) => {
+        // programas from compact query may have voluntarioId/ayudanteId populated as objects or as ids
+        const v = it.voluntarioId;
+        const a = it.ayudanteId;
+        // check by populated name
+        const vName = v && (typeof v === 'object') ? `${v.nombre || ''} ${v.apellido || ''}`.trim().toLowerCase() : (v ? (volMap.get(String(v)) || '').toLowerCase() : '');
+        const aName = a && (typeof a === 'object') ? `${a.nombre || ''} ${a.apellido || ''}`.trim().toLowerCase() : (a ? (volMap.get(String(a)) || '').toLowerCase() : '');
+        if (vName && (vName === currentName || vName.includes(currentName) || currentName.includes(vName))) return true;
+        if (aName && (aName === currentName || aName.includes(currentName) || currentName.includes(aName))) return true;
+        // fallback: if we resolved volunteer ids that match user, check ids
+        const vId = (it.voluntarioId && typeof it.voluntarioId === 'object') ? String(it.voluntarioId._id || it.voluntarioId.id || '') : String(it.voluntarioId || '');
+        const aId = (it.ayudanteId && typeof it.ayudanteId === 'object') ? String(it.ayudanteId._id || it.ayudanteId.id || '') : String(it.ayudanteId || '');
+        if (userVolunteerIds.size > 0 && (userVolunteerIds.has(vId) || userVolunteerIds.has(aId))) return true;
+        return false;
+      });
 
   return (
     <section className="relative min-h-[60vh]">
@@ -62,7 +108,7 @@ export default async function DashboardPage() {
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {(!allowed || allowed.has("dashboard:programas")) && (
             <div>
-              <ProgramasPendientesWidget items={programas} isAdmin={isAdmin} userName={userName} />
+              <ProgramasPendientesWidget items={programasFiltered} isAdmin={isAdmin} userName={userName} />
             </div>
           )}
           {(!allowed || allowed.has("dashboard:proyectos")) && (

@@ -1,9 +1,21 @@
 import { NextResponse } from "next/server";
 import { connectMongo } from "@/lib/mongo";
 import FinanceEntry from "@/models/FinanceEntry";
+import { auth, role as RoleEnum } from "@/lib/auth";
+
+async function ensureAdmin() {
+  const session = await auth();
+  if (!session) return { ok: false, status: 401 };
+  const r = (session.user as any)?.role as string | undefined;
+  if (r !== RoleEnum.ADMIN) return { ok: false, status: 403 };
+  return { ok: true };
+}
 
 export async function GET(req: Request) {
   try {
+    const e = await ensureAdmin();
+    if (!e.ok) return NextResponse.json({ error: 'Unauthorized' }, { status: e.status });
+
     await connectMongo();
     const url = new URL(req.url);
     const desde = url.searchParams.get("desde");
@@ -44,6 +56,9 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
+    const e = await ensureAdmin();
+    if (!e.ok) return NextResponse.json({ error: 'Unauthorized' }, { status: e.status });
+
     await connectMongo();
     const body = await req.json().catch(() => ({}));
     const doc = await FinanceEntry.create({
@@ -65,6 +80,9 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   try {
+    const e = await ensureAdmin();
+    if (!e.ok) return NextResponse.json({ error: 'Unauthorized' }, { status: e.status });
+
     await connectMongo();
     const url = new URL(req.url);
     const id = url.searchParams.get('id');

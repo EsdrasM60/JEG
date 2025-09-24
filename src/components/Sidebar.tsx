@@ -17,7 +17,7 @@ const baseLinks = [
   { href: "/usuarios", label: "👥 Usuarios" },
   { href: "/proyectos", label: "📁 Proyectos" },
   { href: "/actividad", label: "📰 Actividad" },
-  { href: "/finanzas", label: "💰 Finanzas" },
+  // Finanzas link will be conditionally rendered based on user role
 ];
 
 export function Sidebar({ open, onClose }: SidebarProps) {
@@ -26,6 +26,8 @@ export function Sidebar({ open, onClose }: SidebarProps) {
   const [mounted, setMounted] = useState(false);
   useEffect(() => setMounted(true), []);
   if (!mounted) return null;
+
+  const isAdmin = (session.data as any)?.user?.role === 'ADMIN';
 
   const content = (
     <>
@@ -69,6 +71,25 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                   </li>
                 );
               })}
+
+              {/* Finanzas link only for admins */}
+              {isAdmin && (
+                <li>
+                  <Link
+                    href="/finanzas"
+                    className={
+                      "flex items-center gap-2 px-3 py-2 rounded text-sm " +
+                      (pathname === '/finanzas'
+                        ? "bg-white/10 text-white"
+                        : "text-[color:var(--foreground)]/90 hover:bg-white/5")
+                    }
+                    onClick={onClose}
+                  >
+                    <span>💰 Finanzas</span>
+                  </Link>
+                </li>
+              )}
+
             </ul>
           </nav>
           <div className="p-3 border-t border-[color:var(--border)] bg-[color:var(--surface)]">
