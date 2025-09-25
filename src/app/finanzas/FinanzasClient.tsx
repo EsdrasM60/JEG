@@ -3,7 +3,9 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import useSWR, { mutate } from "swr";
 
-const categories = ["Materiales", "Mano de Obra", "Gastos Adm", "Gastos Indirectos", "Otros"];
+const gastoCategories = ["Materiales", "Mano de Obra", "Gastos Adm", "Indirectos", "Otros"];
+const ingresoCategories = ["Pago Inicial", "Abono", "Saldo"];
+const allCategories = Array.from(new Set([...gastoCategories, ...ingresoCategories]));
 
 const fetcher = (url: string) => fetch(url).then(r => r.ok ? r.json() : Promise.reject(r));
 
@@ -317,7 +319,7 @@ export default function FinanzasClient() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Finanzas</h1>
         <div className="flex items-center gap-2">
-          <button className="btn" onClick={() => setShowFilters(s => !s)} aria-expanded={showFilters ? 'true' : 'false'}>{showFilters ? 'Ocultar filtros' : 'Filtros'}</button>
+          <button className="btn" onClick={() => setShowFilters(s => !s)} aria-expanded={showFilters}>{showFilters ? 'Ocultar filtros' : 'Filtros'}</button>
           <button className="btn btn-primary" onClick={() => setModalOpen(true)}>Nuevo</button>
         </div>
       </div>
@@ -356,7 +358,7 @@ export default function FinanzasClient() {
               <label className="block text-sm">Categoría</label>
               <select title="Categoría" aria-label="Categoría" value={filters.categoria} onChange={(e)=>setFilters(f=>({ ...f, categoria: e.target.value }))} className="input">
                 <option value="">--Todas--</option>
-                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                {(filters.tipo === 'GASTO' ? gastoCategories : filters.tipo === 'INGRESO' ? ingresoCategories : allCategories).map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
@@ -485,7 +487,7 @@ export default function FinanzasClient() {
           </div>
           <div className="flex items-center gap-2">
             <label className="text-sm">Registros por página</label>
-            <select value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))} className="input text-sm">
+            <select title="Tamaño de página" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))} className="input text-sm">
               <option value={10}>10</option>
               <option value={25}>25</option>
               <option value={50}>50</option>
@@ -530,7 +532,7 @@ export default function FinanzasClient() {
                 <label className="block text-sm">Categoría</label>
                 <select title="Categoría" aria-label="Categoría" value={form.categoria} onChange={(e)=>setForm(f=>({ ...f, categoria: e.target.value }))} className="input">
                   <option value="">--Seleccionar--</option>
-                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                  {(form.tipo === 'GASTO' ? gastoCategories : form.tipo === 'INGRESO' ? ingresoCategories : allCategories).map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
