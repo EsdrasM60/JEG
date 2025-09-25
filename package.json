@@ -4,6 +4,7 @@
   "private": true,
   "scripts": {
     "dev": "NEXT_DISABLE_TURBOPACK=1 next dev",
+    "dev:3001": "PORT=3001 NEXT_DISABLE_TURBOPACK=1 next dev",
     "build": "next build",
     "start": "NODE_ENV=production next start",
     "start-render": "bash ./scripts/start-render.sh",

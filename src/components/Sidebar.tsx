@@ -12,7 +12,7 @@ export type SidebarProps = {
 
 const baseLinks = [
   { href: "/dashboard", label: "🏠 Dashboard" },
-  { href: "/voluntarios", label: "🤝 Supervisores" },
+  { href: "/voluntarios", label: "🤝 Empleados" },
   { href: "/tareas", label: "🛠️ Tareas" },
   { href: "/usuarios", label: "👥 Usuarios" },
   { href: "/proyectos", label: "📁 Proyectos" },
@@ -56,21 +56,53 @@ export function Sidebar({ open, onClose }: SidebarProps) {
                 const active = pathname === l.href;
                 return (
                   <li key={l.href}>
-                    <Link
-                      href={l.href}
-                      className={
-                        "flex items-center gap-2 px-3 py-2 rounded text-sm " +
-                        (active
-                          ? "bg-white/10 text-white"
-                          : "text-[color:var(--foreground)]/90 hover:bg-white/5")
-                      }
-                      onClick={onClose}
-                    >
-                      <span>{l.label}</span>
-                    </Link>
-                  </li>
-                );
-              })}
+                    <div>
+                      <Link
+                        href={l.href}
+                        className={
+                          "flex items-center gap-2 px-3 py-2 rounded text-sm " +
+                          (active
+                            ? "bg-white/10 text-white"
+                            : "text-[color:var(--foreground)]/90 hover:bg-white/5")
+                        }
+                        onClick={onClose}
+                      >
+                        <span>{l.label}</span>
+                      </Link>
+
+                      {/* submenu for Supervisores (/voluntarios) - Clientes y Proveedores */}
+                      {l.href === '/voluntarios' && (
+                        <ul className="pl-6 mt-1 space-y-1">
+                          <li>
+                            <Link
+                              href="/voluntarios/clientes"
+                              className={
+                                "block px-3 py-1 rounded text-sm " +
+                                (pathname === '/voluntarios/clientes' ? "bg-white/6 text-white" : "text-[color:var(--foreground)]/80 hover:bg-white/3")
+                              }
+                              onClick={onClose}
+                            >
+                              Clientes
+                            </Link>
+                          </li>
+                          <li>
+                            <Link
+                              href="/voluntarios/proveedores"
+                              className={
+                                "block px-3 py-1 rounded text-sm " +
+                                (pathname === '/voluntarios/proveedores' ? "bg-white/6 text-white" : "text-[color:var(--foreground)]/80 hover:bg-white/3")
+                              }
+                              onClick={onClose}
+                            >
+                              Proveedores
+                            </Link>
+                          </li>
+                        </ul>
+                      )}
+                    </div>
+                   </li>
+                 );
+               })}
 
               {/* Finanzas link only for admins */}
               {isAdmin && (

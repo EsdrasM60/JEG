@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import useSWR, { mutate } from "swr";
+import Link from 'next/link';
 
 const categories = ["Materiales", "Mano de Obra", "Gastos Adm", "Gastos Indirectos", "Otros"];
 
@@ -107,8 +108,8 @@ function BarChart({ data }: { data: Array<{ label: string; ingresos: number; gas
                   return (
                     <div key={d.label} className="flex-1 flex flex-col items-center min-w-[40px] relative">
                       <svg viewBox="0 0 100 100" preserveAspectRatio="none" className="w-full h-40 bg-neutral-100 rounded border overflow-hidden">
-                        <rect x="0" y={String(gastosY)} width="100" height={String(gastosH_v)} fill="#f59e0b" onMouseEnter={() => setTooltip({ index: idx, label: d.label, type: 'gastos', value: d.gastos })} onMouseLeave={() => setTooltip(null)} />
-                        <rect x="0" y={String(ingresosY)} width="100" height={String(ingresosH_v)} fill="#f97316" onMouseEnter={() => setTooltip({ index: idx, label: d.label, type: 'ingresos', value: d.ingresos })} onMouseLeave={() => setTooltip(null)} />
+                        <rect x="0" y={String(gastosY)} width="100" height={String(gastosH_v)} fill="#dc2626" onMouseEnter={() => setTooltip({ index: idx, label: d.label, type: 'gastos', value: d.gastos })} onMouseLeave={() => setTooltip(null)} />
+                        <rect x="0" y={String(ingresosY)} width="100" height={String(ingresosH_v)} fill="#16a34a" onMouseEnter={() => setTooltip({ index: idx, label: d.label, type: 'ingresos', value: d.ingresos })} onMouseLeave={() => setTooltip(null)} />
                       </svg>
 
                       {tooltip && tooltip.index === idx && (
@@ -129,8 +130,8 @@ function BarChart({ data }: { data: Array<{ label: string; ingresos: number; gas
       )}
 
       <div className="mt-2 text-xs flex justify-between">
-        <div className="flex items-center gap-2"><span className="w-3 h-3 bg-[#f97316] inline-block" /> Ingresos</div>
-        <div className="flex items-center gap-2"><span className="w-3 h-3 bg-[#f59e0b] inline-block" /> Gastos</div>
+        <div className="flex items-center gap-2"><span className="w-3 h-3 bg-[#16a34a] inline-block" /> Ingresos</div>
+        <div className="flex items-center gap-2"><span className="w-3 h-3 bg-[#dc2626] inline-block" /> Gastos</div>
       </div>
     </div>
   );
@@ -255,97 +256,39 @@ export default function FinanzasPage() {
   const gastosAnio = resumenAnual?.totalGastos || 0;
   const balanceAnio = ingresosAnio - gastosAnio;
 
-  // porcentajes para la barra horizontal (evita inline styles)
-  const totalAnio = (ingresosAnio + gastosAnio) || 1;
-  const ingresosPct = Math.round((ingresosAnio / totalAnio) * 10000) / 100; // 2 decimales
-  const gastosPct = Math.round((gastosAnio / totalAnio) * 10000) / 100;
+  // Obtener todas las entradas del año en curso (no afectadas por los filtros) para el gráfico mensual
+  const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString().slice(0,10);
+  const yearEnd = new Date(new Date().getFullYear(), 11, 31).toISOString().slice(0,10);
+  const { data: yearEntriesResp } = useSWR(`/api/finanzas?desde=${yearStart}&hasta=${yearEnd}&page=1&pageSize=1000`, fetcher);
+  const yearEntries = yearEntriesResp?.items || [];
 
-  // Nuevo: CxC / CxP - obtener todas las entradas de INGRESO y GASTO (pageSize grande para listar)
-  // Usar endpoints específicos que implementamos: /api/finanzas/cxc y /api/finanzas/cxp
-  const { data: cxcResp } = useSWR('/api/finanzas/cxc?desde=' + (filters.desde||'') + '&hasta=' + (filters.hasta||''), fetcher);
-  const { data: cxpResp } = useSWR('/api/finanzas/cxp?desde=' + (filters.desde||'') + '&hasta=' + (filters.hasta||''), fetcher);
-  // Fallback totals for non-admin users: endpoint cuentas returns combined totals without auth
-  const { data: cuentasTotals } = useSWR('/api/finanzas/cuentas?desde=' + (filters.desde||'') + '&hasta=' + (filters.hasta||''), fetcher);
-  const cxcEntries = cxcResp?.items || [];
-  const cxpEntries = cxpResp?.items || [];
-  const cuentasIngresos = cuentasTotals?.totalIngresos ?? undefined;
-  const cuentasGastos = cuentasTotals?.totalGastos ?? undefined;
+  // Fetch CxC / CxP aggregates for the current year (used in CxC/CxP sections)
+  const { data: cxcResp } = useSWR(`/api/finanzas/cxc?desde=${yearStart}&hasta=${yearEnd}&page=1&pageSize=1000`, fetcher);
+  const cxcEntries = Array.isArray(cxcResp?.items) ? cxcResp.items : [];
+  const cxcByProject = Array.isArray(cxcResp?.byProject) ? cxcResp.byProject : [];
+  const cxcBySub = Array.isArray(cxcResp?.bySub) ? cxcResp.bySub : [];
 
-  // Agregar agregaciones simples: totales por proyecto y por subcontratista
-  const cxcByProject = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const e of cxcEntries) {
-      const key = (e.proyectoId || 'sin-proyecto');
-      m.set(key, (m.get(key) || 0) + (Number(e.monto) || 0));
-    }
-    return Array.from(m.entries()).map(([k, v]) => ({ key: k, total: v }));
-  }, [cxcEntries]);
+  const { data: cxpResp } = useSWR(`/api/finanzas/cxp?desde=${yearStart}&hasta=${yearEnd}&page=1&pageSize=1000`, fetcher);
+  const cxpEntries = Array.isArray(cxpResp?.items) ? cxpResp.items : [];
+  const cxpByProject = Array.isArray(cxpResp?.byProject) ? cxpResp.byProject : [];
+  const cxpBySub = Array.isArray(cxpResp?.bySub) ? cxpResp.bySub : [];
 
-  const cxpByProject = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const e of cxpEntries) {
-      const key = (e.proyectoId || 'sin-proyecto');
-      m.set(key, (m.get(key) || 0) + (Number(e.monto) || 0));
-    }
-    return Array.from(m.entries()).map(([k, v]) => ({ key: k, total: v }));
-  }, [cxpEntries]);
+  // Combined totals fallback (used when user is not admin)
+  const { data: cuentasResp } = useSWR(`/api/finanzas/cuentas?desde=${yearStart}&hasta=${yearEnd}`, fetcher);
+  const cuentasIngresos = cuentasResp?.totalIngresos;
+  const cuentasGastos = cuentasResp?.totalGastos;
 
-  const cxcBySub = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const e of cxcEntries) {
-      const key = (e.subContratistaId || 'sin-sub');
-      m.set(key, (m.get(key) || 0) + (Number(e.monto) || 0));
-    }
-    return Array.from(m.entries()).map(([k, v]) => ({ key: k, total: v }));
-  }, [cxcEntries]);
-
-  const cxpBySub = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const e of cxpEntries) {
-      const key = (e.subContratistaId || 'sin-sub');
-      m.set(key, (m.get(key) || 0) + (Number(e.monto) || 0));
-    }
-    return Array.from(m.entries()).map(([k, v]) => ({ key: k, total: v }));
-  }, [cxpEntries]);
-
-  useEffect(() => {
-    // initialize fecha default on modal open and focus date input
-    if (modalOpen) {
-      setForm(f => ({ ...f, fecha: f.fecha || new Date().toISOString().slice(0,10) }));
-      setTimeout(() => { try { dateRef.current?.focus(); } catch {} }, 0);
-    }
-  }, [modalOpen]);
-
-  // reset to first page when filters or pageSize change
-  useEffect(() => {
-    setPage(1);
-  }, [filters.desde, filters.hasta, filters.categoria, filters.subContratistaId, filters.tipo, filters.proyectoId, pageSize]);
-
-  // Revalidate entries and summary whenever filters change so filtering is reactive and summary matches the list
-  React.useEffect(() => {
-    try {
-      // revalidate list (with current filters) and summary
-      mutate(entriesKey);
-      mutate('/api/finanzas/summary');
-    } catch (e) {
-      // ignore
-    }
-  }, [filters.desde, filters.hasta, filters.categoria, filters.subContratistaId, filters.tipo, filters.proyectoId]);
-
-  // derive monthly ingresos and gastos for the bar chart (last 12 months)
+  // derive monthly ingresos and gastos for the bar chart (current year Jan..Dec)
   const monthlyData = useMemo(() => {
-    const now = new Date();
-    const months: string[] = [];
-    for (let i = 11; i >= 0; i--) {
-      const d = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      months.push(d.toLocaleString('default', { month: 'short', year: 'numeric' }));
-    }
+    const year = new Date().getFullYear();
+    const months = Array.from({ length: 12 }, (_, i) => new Date(year, i, 1).toLocaleString('default', { month: 'short', year: 'numeric' }));
     const map = new Map<string, { ingresos: number; gastos: number }>();
     months.forEach(m => map.set(m, { ingresos: 0, gastos: 0 }));
-    if (Array.isArray(entries)) {
-      for (const e of entries) {
+    if (Array.isArray(yearEntries)) {
+      for (const e of yearEntries) {
         const dt = new Date(e.fecha);
         if (isNaN(dt.getTime())) continue;
+        if (dt.getFullYear() !== year) continue;
         const key = dt.toLocaleString('default', { month: 'short', year: 'numeric' });
         if (!map.has(key)) continue;
         const v = Number(e.monto) || 0;
@@ -357,7 +300,7 @@ export default function FinanzasPage() {
       }
     }
     return months.map(m => ({ label: m, ingresos: map.get(m)?.ingresos || 0, gastos: map.get(m)?.gastos || 0 }));
-  }, [entries]);
+  }, [yearEntries]);
 
   async function submitNew(e?: React.FormEvent) {
     e?.preventDefault();
@@ -403,101 +346,16 @@ export default function FinanzasPage() {
   }
 
   return (
-    <div className="p-4">
+    <div className="p-6">
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Finanzas</h1>
         <div className="flex items-center gap-2">
           <button className="btn" onClick={() => setShowFilters(s => !s)}>{showFilters ? 'Ocultar filtros' : 'Filtros'}</button>
           <button className="btn btn-primary" onClick={() => setModalOpen(true)}>Nuevo</button>
-          <a href="#cxc" className="btn" title="Ir a Cuenta por Cobrar">CxC</a>
-          <a href="#cxp" className="btn" title="Ir a Cuenta por Pagar">CxP</a>
         </div>
       </div>
 
-      {/* Resumen anual pastel y barra */}
-      <section className="mt-6 mb-6">
-        <h2 className="text-lg font-semibold mb-2">Resumen anual ({new Date().getFullYear()})</h2>
-        <div className="flex flex-col md:flex-row gap-6 items-center">
-          <div className="flex flex-col items-center gap-2">
-            <PieChart slices={[
-              { label: 'Ingresos', value: ingresosAnio, color: '#16a34a' },
-              { label: 'Gastos', value: gastosAnio, color: '#dc2626' },
-              { label: 'Balance', value: Math.max(0, balanceAnio), color: '#0ea5e9' },
-            ]} size={120} />
-            <div className="text-xs text-muted">Ingresos: <b>{formatNumber(ingresosAnio)}</b> | Gastos: <b>{formatNumber(gastosAnio)}</b> | Balance: <b>{formatNumber(balanceAnio)}</b></div>
-          </div>
-          <div className="flex-1 flex flex-col items-center">
-            {/* Barra horizontal */}
-            <svg viewBox="0 0 100 8" className="w-full max-w-xs bg-neutral-100 rounded h-8 border overflow-hidden" role="img" aria-label={`Distribución anual: ingresos ${formatNumber(ingresosAnio)}, gastos ${formatNumber(gastosAnio)}`}>
-              <rect x="0" y="0" width={String(ingresosPct)} height="8" fill="#16a34a" />
-              <rect x={String(ingresosPct)} y="0" width={String(gastosPct)} height="8" fill="#dc2626" />
-            </svg>
-
-            <div className="text-xs mt-1">Balance: <b className={balanceAnio>=0?'text-green-700':'text-red-700'}>{formatNumber(balanceAnio)}</b></div>
-          </div>
-        </div>
-      </section>
-
-      {/* Nuevo: CxC / CxP */}
-      <section className="mt-6">
-        <h2 className="text-lg font-semibold mb-3">Cuentas: CxC / CxP</h2>
-        <div className="grid md:grid-cols-2 gap-6">
-          <div id="cxc">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-medium">Cuenta por Cobrar (CxC)</h3>
-              <div className="text-sm text-muted">Total: <strong>{formatNumber(cuentasIngresos ?? cxcEntries.reduce((s: number, x: any) => s + (Number(x.monto) || 0), 0))}</strong></div>
-            </div>
-            <div className="overflow-auto max-h-64 border rounded">
-              <table className="w-full text-sm">
-                <thead className="bg-neutral-50 text-left">
-                  <tr>
-                    <th className="p-2">Proyecto</th>
-                    <th className="p-2 text-right">Total</th>
-                    <th className="p-2">Sub Contratista</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cxcByProject.map((p:any) => (
-                    <tr key={p.key} className="border-t">
-                      <td className="p-2">{proyectoMap.get(String(p.key)) || (p.key === 'sin-proyecto' ? 'Sin proyecto' : p.key)}</td>
-                      <td className="p-2 text-right">{formatNumber(p.total)}</td>
-                      <td className="p-2">{(cxcBySub.find(s => String(s.key) === String(p.key)) ? subcontractorMap.get(String(cxcBySub.find(s => String(s.key) === String(p.key))!.key)) : '-') || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-
-          <div id="cxp">
-            <div className="flex items-center justify-between mb-2">
-              <h3 className="font-medium">Cuenta por Pagar (CxP)</h3>
-              <div className="text-sm text-muted">Total: <strong>{formatNumber(cuentasGastos ?? cxpEntries.reduce((s: number, x: any) => s + (Number(x.monto) || 0), 0))}</strong></div>
-            </div>
-            <div className="overflow-auto max-h-64 border rounded">
-              <table className="w-full text-sm">
-                <thead className="bg-neutral-50 text-left">
-                  <tr>
-                    <th className="p-2">Proyecto</th>
-                    <th className="p-2 text-right">Total</th>
-                    <th className="p-2">Sub Contratista</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {cxpByProject.map((p:any) => (
-                    <tr key={p.key} className="border-t">
-                      <td className="p-2">{proyectoMap.get(String(p.key)) || (p.key === 'sin-proyecto' ? 'Sin proyecto' : p.key)}</td>
-                      <td className="p-2 text-right">{formatNumber(p.total)}</td>
-                      <td className="p-2">{(cxpBySub.find(s => String(s.key) === String(p.key)) ? subcontractorMap.get(String(cxpBySub.find(s => String(s.key) === String(p.key))!.key)) : '-') || '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </div>
-        </div>
-      </section>
-
+      {/* Filters placed at top when toggled */}
       {showFilters && (
         <section className="mt-4 border p-3 rounded bg-[color:var(--surface)]">
           <div className="grid grid-cols-1 sm:grid-cols-5 gap-3">
@@ -548,7 +406,6 @@ export default function FinanzasPage() {
           <div className="mt-3 flex gap-2">
             <button
               onClick={() => {
-                // reset filters and revalidate entries and summary immediately
                 setFilters({ desde: '', hasta: '', categoria: '', subContratistaId: '', tipo: '', proyectoId: '' });
                 try {
                   const clearedKey = `/api/finanzas?desde=&hasta=&categoria=&subContratistaId=&tipo=&proyectoId=`;
@@ -564,113 +421,150 @@ export default function FinanzasPage() {
         </section>
       )}
 
+      {/* Sub-navigation like projects module */}
+      <nav className="mt-4">
+        <ul className="flex items-center gap-6 border-b pb-2">
+          <li>
+            <Link href="/finanzas" className="inline-flex items-center gap-2 text-sm text-neutral-700 hover:text-neutral-900">
+              <span className="rounded-full bg-neutral-100 w-8 h-8 flex items-center justify-center">📊</span>
+              <span>Resumen</span>
+            </Link>
+          </li>
+          <li>
+            <Link href="/finanzas/cxc" className="inline-flex items-center gap-2 text-sm text-neutral-700 hover:text-neutral-900">
+              <span className="rounded-full bg-neutral-100 w-8 h-8 flex items-center justify-center">🧾</span>
+              <span>CxC</span>
+            </Link>
+          </li>
+          <li>
+            <Link href="/finanzas/cxp" className="inline-flex items-center gap-2 text-sm text-neutral-700 hover:text-neutral-900">
+              <span className="rounded-full bg-neutral-100 w-8 h-8 flex items-center justify-center">💸</span>
+              <span>CxP</span>
+            </Link>
+          </li>
+          <li>
+            <a href="#ingresos-gastos" className="inline-flex items-center gap-2 text-sm text-neutral-700 hover:text-neutral-900">
+              <span className="rounded-full bg-neutral-100 w-8 h-8 flex items-center justify-center">📈</span>
+              <span>Ingresos / Gastos</span>
+            </a>
+          </li>
+        </ul>
+      </nav>
+
+      {/* Resumen anual (restored) */}
+      <section className="mt-6 mb-6">
+        <h2 className="text-lg font-semibold mb-4 text-center">Resumen anual ({new Date().getFullYear()})</h2>
+        <div className="flex flex-col md:flex-row gap-6 items-center justify-center">
+          <div className="flex flex-col items-center gap-3">
+            <PieChart slices={[
+              { label: 'Ingresos', value: ingresosAnio, color: '#16a34a' },
+              { label: 'Gastos', value: gastosAnio, color: '#dc2626' },
+              { label: 'Balance', value: Math.max(0, balanceAnio), color: '#0ea5e9' },
+            ]} size={140} />
+            <div className="text-sm text-muted text-center">Ingresos: <b>{formatNumber(ingresosAnio)}</b> &nbsp;|&nbsp; Gastos: <b>{formatNumber(gastosAnio)}</b> &nbsp;|&nbsp; Balance: <b>{formatNumber(balanceAnio)}</b></div>
+          </div>
+
+          {/* Resumen CxC / CxP compact cards centered */}
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="p-4 border rounded bg-white shadow-sm w-72">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium">Cuenta por Cobrar (CxC)</div>
+                <div className="text-sm text-muted">Total</div>
+              </div>
+              <div className="mt-3 text-2xl font-semibold">{formatNumber(Number(cuentasIngresos ?? cxcEntries.reduce((s: number, x: any) => s + (Number(x.monto) || 0), 0)))}</div>
+              <div className="mt-3 text-xs text-muted">
+                {cxcByProject.slice(0,3).map((p:any)=> (
+                  <div key={String(p.key)} className="flex justify-between">
+                    <div>{proyectoMap.get(String(p.key)) || String(p.key)}</div>
+                    <div>{formatNumber(p.total)}</div>
+                  </div>
+                ))}
+                {cxcByProject.length === 0 && <div>No hay items</div>}
+              </div>
+            </div>
+
+            <div className="p-4 border rounded bg-white shadow-sm w-72">
+              <div className="flex items-center justify-between">
+                <div className="text-sm font-medium">Cuenta por Pagar (CxP)</div>
+                <div className="text-sm text-muted">Total</div>
+              </div>
+              <div className="mt-3 text-2xl font-semibold">{formatNumber(Number(cuentasGastos ?? cxpEntries.reduce((s: number, x: any) => s + (Number(x.monto) || 0), 0)))}</div>
+              <div className="mt-3 text-xs text-muted">
+                {cxpByProject.slice(0,3).map((p:any)=> (
+                  <div key={String(p.key)} className="flex justify-between">
+                    <div>{proyectoMap.get(String(p.key)) || String(p.key)}</div>
+                    <div>{formatNumber(p.total)}</div>
+                  </div>
+                ))}
+                {cxpByProject.length === 0 && <div>No hay items</div>}
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/* Ingresos / Gastos section (restored) */}
       <section className="mt-6">
-        <h2 className="text-lg font-semibold">Ingresos / Gastos</h2>
+        <div className="flex items-center justify-between">
+          <h2 className="text-lg font-semibold">Ingresos / Gastos</h2>
+        </div>
 
         {/* Totals and chart */}
         <div className="mt-4 mb-4">
-          <div className="text-sm text-muted mb-2">Ingresos / Gastos por mes (últimos 12 meses)</div>
+          <div className="text-sm text-muted mb-2">Ingresos / Gastos (Año {new Date().getFullYear()})</div>
           <div className="flex flex-col lg:flex-row items-center justify-center gap-6">
-            <div className="flex items-center gap-4 flex-1">
-              <div>
-                {/* If a specific tipo is selected, show category distribution for that tipo */}
-                {filters.tipo === 'GASTO' || filters.tipo === 'INGRESO' ? (
-                  (() => {
-                    const slices = Array.from(categoryTotals.entries()).map(([label, value]) => ({ label, value }));
-                    slices.sort((a, b) => b.value - a.value);
-                    const top = slices.slice(0, 10);
-                    const rest = slices.slice(10);
-                    if (rest.length > 0) {
-                      const restSum = rest.reduce((s, x) => s + x.value, 0);
-                      top.push({ label: 'Otros', value: restSum });
-                    }
-                    return (
-                      <div className="flex items-center gap-3">
-                        <PieChart slices={top} size={120} />
-                        <div>
-                          <div className="text-sm text-muted">Distribución por categoría ({filters.tipo})</div>
-                          <div className="mt-1 text-sm">
-                            {top.map((s, i) => (
-                              <div key={s.label} className="flex items-center gap-2 text-xs">
-                                <span className="w-2 h-2 rounded inline-block bg-neutral-300" />
-                                <strong>{s.label}</strong>: {formatNumber(s.value)}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })()
-                ) : (
-                  <PieSummary ingresos={totals.ingresos} gastos={totals.gastos} />
-                )}
-              </div>
+            <div className="flex items-center gap-4 flex-1 justify-center">
+              <PieSummary ingresos={totals.ingresos} gastos={totals.gastos} />
             </div>
-            <div className="flex-1 max-w-3xl w-full">
+            <div className="flex-1 max-w-4xl w-full">
               <BarChart data={monthlyData} />
             </div>
           </div>
         </div>
 
-        <div className="mt-4 overflow-auto">
-          <table className="w-full text-base">
-            <thead>
-              <tr>
-                <th className="text-left p-2">Fecha</th>
-                <th className="text-left p-2">Tipo</th>
-                <th className="text-right p-2">Monto</th>
-                <th className="text-left p-2">Categoría</th>
-                <th className="text-left p-2">Proyecto</th>
-                <th className="text-left p-2">Sub Contratista</th>
-                <th className="text-left p-2">Nota</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries && entries.length === 0 && (
-                <tr><td colSpan={7} className="p-4 text-center text-sm text-muted">No hay registros</td></tr>
-              )}
-              {entries && entries.map((r: any) => {
-                const montoNum = Number(r.monto) || 0;
-                const proyectoName = proyectoMap.get(String(r.proyectoId)) || r.proyectoId || "-";
-                return (
-                  <tr key={r._id} className="border-t cursor-pointer hover:bg-[color:var(--surface-2)]" onClick={() => {
-                    // open modal to edit this entry
-                    setEditingEntryId(String(r._id));
-                    setForm({
-                      fecha: new Date(r.fecha).toISOString().slice(0,10),
-                      tipo: r.tipo || 'GASTO',
-                      monto: formatCurrency(Number(r.monto) || 0),
-                      categoria: r.categoria || '',
-                      proyectoId: r.proyectoId || '',
-                      subContratistaId: r.subContratistaId || '',
-                      nota: r.nota || '',
-                    });
-                    setModalOpen(true);
-                  }}>
-                    <td className="p-2">{new Date(r.fecha).toLocaleDateString()}</td>
-                    <td className="p-2">{r.tipo}</td>
-                    <td className="p-2 text-right pr-8">{formatNumber(montoNum)}</td>
-                    <td className="p-2 pl-6">{r.categoria}</td>
-                    <td className="p-2">{proyectoName}</td>
-                    <td className="p-2">{subcontractorMap.get(String(r.subContratistaId)) || r.subContratistaId || '-'}</td>
-                    <td className="p-2">{r.nota}</td>
+        {/* Listado de entradas (campos iguales al modal "Nuevo") */}
+        <div className="mt-6">
+          <h3 className="text-sm font-medium mb-2">Listado de entradas</h3>
+          <div className="border rounded overflow-hidden bg-white shadow-sm">
+            <table className="w-full text-sm">
+              <thead className="bg-white">
+                <tr>
+                  <th className="p-3 text-left">Fecha</th>
+                  <th className="p-3 text-left">Tipo</th>
+                  <th className="p-3 text-right">Monto</th>
+                  <th className="p-3 text-left">Categoría</th>
+                  <th className="p-3 text-left">Proyecto</th>
+                  <th className="p-3 text-left">Sub Contratista</th>
+                  <th className="p-3 text-left">Nota</th>
+                </tr>
+              </thead>
+              <tbody>
+                {entries.map((d: any) => (
+                  <tr key={d._id} className="hover:bg-neutral-50">
+                    <td className="p-3 border-b border-neutral-200">{d.fecha ? new Date(d.fecha).toLocaleDateString() : '-'}</td>
+                    <td className="p-3 border-b border-neutral-200">{d.tipo || '-'}</td>
+                    <td className="p-3 border-b border-neutral-200 text-right">{Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(Number(d.monto) || 0)}</td>
+                    <td className="p-3 border-b border-neutral-200">{d.categoria || d.metadata?.categoria || '-'}</td>
+                    <td className="p-3 border-b border-neutral-200">{proyectoMap.get(String(d.proyectoId)) || d.proyectoId || '-'}</td>
+                    <td className="p-3 border-b border-neutral-200">{subcontractorMap.get(String(d.subContratistaId)) || d.subContratistaId || (d.metadata?.subContratista || '-')}</td>
+                    <td className="p-3 border-b border-neutral-200">{d.nota || d.metadata?.nota || d.metadata?.descripcion || '-'}</td>
                   </tr>
-               );
-             })}
-            </tbody>
-          </table>
+                ))}
+              </tbody>
+            </table>
+          </div>
         </div>
 
-        {/* Pagination controls */}
-        <div className="mt-3 flex items-center justify-between">
+        {/* Pagination for listado de entradas */}
+        <div className="flex items-center justify-between gap-2 mt-3">
           <div className="flex items-center gap-2">
             <button className="btn" onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page <= 1}>Anterior</button>
-            <button className="btn" onClick={() => setPage(p => p + 1)} disabled={page * pageSize >= total}>Siguiente</button>
-            <div className="text-sm text-muted">Página {page} de {Math.max(1, Math.ceil(total / pageSize))} — {total} registros</div>
+            <button className="btn" onClick={() => setPage(p => Math.min(Math.max(1, Math.ceil((total || 0) / pageSize)), p + 1))} disabled={page >= Math.max(1, Math.ceil((total || 0) / pageSize))}>Siguiente</button>
+            <span className="text-sm text-muted">Página {page} de {Math.max(1, Math.ceil((total || 0) / pageSize))} — {total || 0} registros</span>
           </div>
           <div className="flex items-center gap-2">
-            <label className="text-sm">Registros por página</label>
-            <select title="Registros por página" value={pageSize} onChange={(e) => setPageSize(Number(e.target.value))} className="input text-sm">
+            <label className="text-sm">Tamaño</label>
+            <select title="Tamaño de página" aria-label="Tamaño de página" className="input" value={pageSize} onChange={(e) => { setPageSize(Number(e.target.value)); setPage(1); }}>
               <option value={10}>10</option>
               <option value={25}>25</option>
               <option value={50}>50</option>
