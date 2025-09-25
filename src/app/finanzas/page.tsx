@@ -4,7 +4,9 @@ import React, { useEffect, useState, useRef, useMemo } from "react";
 import useSWR, { mutate } from "swr";
 import Link from 'next/link';
 
-const categories = ["Materiales", "Mano de Obra", "Gastos Adm", "Gastos Indirectos", "Otros"];
+const gastoCategories = ["Materiales", "Mano de Obra", "Gastos Adm", "Indirectos", "Otros"];
+const ingresoCategories = ["Pago Inicial", "Abono", "Saldo"];
+const allCategories = Array.from(new Set([...gastoCategories, ...ingresoCategories]));
 
 const fetcher = (url: string) => fetch(url).then(r => r.ok ? r.json() : Promise.reject(r));
 
@@ -380,7 +382,7 @@ export default function FinanzasPage() {
             </div>
             <div>
               <label className="block text-sm">Tipo</label>
-              <select title="Tipo filtro" aria-label="Tipo filtro" value={filters.tipo} onChange={(e)=>setFilters(f=>({ ...f, tipo: e.target.value }))} className="input">
+              <select title="Tipo filtro" aria-label="Tipo filtro" value={filters.tipo} onChange={(e)=>setFilters(f=>({ ...f, tipo: e.target.value, categoria: '' }))} className="input">
                 <option value="">--Todos--</option>
                 <option value="INGRESO">INGRESO</option>
                 <option value="GASTO">GASTO</option>
@@ -390,7 +392,7 @@ export default function FinanzasPage() {
               <label className="block text-sm">Categoría</label>
               <select title="Categoría" aria-label="Categoría" value={filters.categoria} onChange={(e)=>setFilters(f=>({ ...f, categoria: e.target.value }))} className="input">
                 <option value="">--Todas--</option>
-                {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                {(filters.tipo === 'GASTO' ? gastoCategories : filters.tipo === 'INGRESO' ? ingresoCategories : allCategories).map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
             <div>
@@ -587,7 +589,7 @@ export default function FinanzasPage() {
               </div>
               <div>
                 <label className="block text-sm">Tipo</label>
-                <select title="Tipo" aria-label="Tipo" value={form.tipo} onChange={(e)=>setForm(f=>({ ...f, tipo: e.target.value }))} className="input">
+                <select title="Tipo" aria-label="Tipo" value={form.tipo} onChange={(e)=>{ const t = (e.target.value||'').toString(); setForm(f=>({ ...f, tipo: t, categoria: '' })); }} className="input">
                   <option value="GASTO">GASTO</option>
                   <option value="INGRESO">INGRESO</option>
                 </select>
@@ -610,7 +612,7 @@ export default function FinanzasPage() {
                 <label className="block text-sm">Categoría</label>
                 <select title="Categoría" aria-label="Categoría" value={form.categoria} onChange={(e)=>setForm(f=>({ ...f, categoria: e.target.value }))} className="input">
                   <option value="">--Seleccionar--</option>
-                  {categories.map(c => <option key={c} value={c}>{c}</option>)}
+                  {(form.tipo === 'GASTO' ? gastoCategories : form.tipo === 'INGRESO' ? ingresoCategories : allCategories).map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
               </div>
               <div>
