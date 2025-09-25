@@ -1,7 +1,9 @@
 "use client";
 import useSWR from "swr";
 import { useState } from "react";
-import { PencilSquareIcon, TrashIcon, PlusCircleIcon } from "@heroicons/react/24/outline";
+import PencilSquareIcon from "@heroicons/react/24/outline/PencilSquareIcon";
+import TrashIcon from "@heroicons/react/24/outline/TrashIcon";
+import PlusCircleIcon from "@heroicons/react/24/outline/PlusCircleIcon";
 import Link from "next/link";
 
 const fetcher = async (url: string) => {

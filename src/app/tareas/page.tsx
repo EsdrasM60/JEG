@@ -2,7 +2,14 @@
 import useSWR from "swr";
 import { useMemo, useRef, useState, useEffect } from "react";
 import Link from "next/link";
-import { ChevronLeftIcon, ChevronRightIcon, CalendarIcon, PlusIcon, XMarkIcon, CheckCircleIcon, InformationCircleIcon, PaperClipIcon } from "@heroicons/react/24/outline";
+import ChevronLeftIcon from "@heroicons/react/24/outline/ChevronLeftIcon";
+import ChevronRightIcon from "@heroicons/react/24/outline/ChevronRightIcon";
+import CalendarIcon from "@heroicons/react/24/outline/CalendarIcon";
+import PlusIcon from "@heroicons/react/24/outline/PlusIcon";
+import XMarkIcon from "@heroicons/react/24/outline/XMarkIcon";
+import CheckCircleIcon from "@heroicons/react/24/outline/CheckCircleIcon";
+import InformationCircleIcon from "@heroicons/react/24/outline/InformationCircleIcon";
+import PaperClipIcon from "@heroicons/react/24/outline/PaperClipIcon";
 
 const fetcher = (url: string) => fetch(url).then((r) => r.json());
 

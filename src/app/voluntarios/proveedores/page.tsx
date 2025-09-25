@@ -2,7 +2,9 @@
 import React, { useState } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
-import { PencilSquareIcon, TrashIcon, PlusCircleIcon } from '@heroicons/react/24/outline';
+import PencilSquareIcon from '@heroicons/react/24/outline/PencilSquareIcon';
+import TrashIcon from '@heroicons/react/24/outline/TrashIcon';
+import PlusCircleIcon from '@heroicons/react/24/outline/PlusCircleIcon';
 
 const fetcher = (url: string) => fetch(url).then(r => r.ok ? r.json() : Promise.reject(r));
 
@@ -12,6 +14,8 @@ function shortId(input?: string) {
   for (let i = 0; i < s.length; i++) h = (h * 31 + s.charCodeAt(i)) >>> 0;
   return String(100 + (h % 900));
 }
+
+export const dynamic = 'force-dynamic';
 
 export default function ProveedoresPage() {
   const { data, mutate } = useSWR('/api/proveedores', fetcher);

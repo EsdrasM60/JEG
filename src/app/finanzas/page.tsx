@@ -3,7 +3,8 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import useSWR, { mutate } from "swr";
 import Link from 'next/link';
-import { PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
+import PencilSquareIcon from '@heroicons/react/24/outline/PencilSquareIcon';
+import TrashIcon from '@heroicons/react/24/outline/TrashIcon';
 
 const gastoCategories = ["Materiales", "Mano de Obra", "Gastos Adm", "Indirectos", "Otros"];
 const ingresoCategories = ["Pago Inicial", "Abono", "Saldo"];

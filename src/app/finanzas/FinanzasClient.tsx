@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import useSWR, { mutate } from "swr";
-import { TrashIcon } from '@heroicons/react/24/solid';
+import TrashIcon from '@heroicons/react/24/solid/TrashIcon';
 
 const gastoCategories = ["Materiales", "Mano de Obra", "Gastos Adm", "Indirectos", "Otros"];
 const ingresoCategories = ["Pago Inicial", "Abono", "Saldo"];

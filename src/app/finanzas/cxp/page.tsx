@@ -16,6 +16,8 @@ function formatDate(d: string | Date | undefined) {
   return dt.toLocaleDateString('en-GB');
 }
 
+export const dynamic = 'force-dynamic';
+
 export default function CxPPage() {
   const yearStart = new Date(new Date().getFullYear(), 0, 1).toISOString().slice(0,10);
   const yearEnd = new Date(new Date().getFullYear(), 11, 31).toISOString().slice(0,10);
