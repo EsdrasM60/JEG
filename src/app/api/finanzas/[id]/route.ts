@@ -52,7 +52,7 @@ export async function PATCH(req: Request) {
     if (typeof body.metadata !== 'undefined') {
       // merge with existing metadata to avoid wiping other metadata fields
       try {
-        const existing = await FinanceEntry.findById(id).lean();
+        const existing: any = await FinanceEntry.findById(id).lean();
         update.metadata = { ...(existing?.metadata || {}), ...(body.metadata || {}) };
       } catch (e) {
         update.metadata = body.metadata;
