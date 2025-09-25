@@ -359,19 +359,21 @@ export default function CxCClient() {
                   title="Cliente"
                   aria-label="Cliente"
                   value={form.clienteId}
-                  onChange={(e:any)=> setForm((f:any)=>({
-                    ...f,
-                    clienteId: e.target.value,
-                    cliente: e.target.selectedOptions?.[0]?.text || ''
-                  }))}
+                  onChange={(e:any)=>{
+                    const label = e.target.selectedOptions?.[0]?.text || '';
+                    setForm((f:any)=>({ ...f, clienteId: e.target.value, cliente: label }));
+                  }}
                   className="input"
                 >
                   <option value="">--Seleccione--</option>
-                  {clientesList.map((c:any) => (
-                    <option key={c._id || c.id} value={c._id || c.id}>
-                      {c.nombre || c.name || c.display}{c.empresa ? ` (${c.empresa})` : ''}
-                    </option>
-                  ))}
+                  {clientesList.map((c:any) => {
+                    const id = c._id || c.id;
+                    return (
+                      <option key={id} value={id}>
+                        {c.nombre || c.name || c.display}{c.empresa ? ` (${c.empresa})` : ''}
+                      </option>
+                    );
+                  })}
                 </select>
               </div>
               <div>

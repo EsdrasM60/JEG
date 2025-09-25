@@ -340,13 +340,23 @@ export default function CxPPage() {
               </div>
               <div>
                 <label className="block text-sm">Proveedor</label>
-                <select title="Proveedor" aria-label="Proveedor" value={form.proveedor} onChange={(e)=>setForm((f:any)=>({...f, proveedor: e.target.value}))} className="input">
+                <select
+                  title="Proveedor"
+                  aria-label="Proveedor"
+                  value={form.proveedorId}
+                  onChange={(e)=>{
+                    const label = e.target.selectedOptions?.[0]?.text || '';
+                    setForm((f:any)=>({...f, proveedorId: e.target.value, proveedor: label}));
+                  }}
+                  className="input"
+                >
                   <option value="">--Seleccione--</option>
                   {proveedoresList.map((p:any) => {
+                    const id = p._id || p.id;
                     const nombre = p.nombre || p.name || '';
                     const empresa = p.empresa || p.company || p.nombreEmpresa || '';
                     const label = nombre && empresa ? `${nombre} — ${empresa}` : (nombre || empresa || '');
-                    return <option key={p._id || p.id || label} value={label}>{label}</option>;
+                    return <option key={id || label} value={id}>{label}</option>;
                   })}
                 </select>
               </div>
