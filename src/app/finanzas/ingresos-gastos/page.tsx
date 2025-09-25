@@ -1,8 +1,8 @@
 "use client";
 import React, { useMemo, useState, useEffect } from 'react';
 import useSWR from 'swr';
-import BarChart from '../../components/BarChart';
-import PieSummary from '../../components/PieSummary';
+import BarChart from '../../../components/BarChart';
+import PieSummary from '../../../components/PieSummary';
 
 const fetcher = (url: string) => fetch(url).then(r => r.json());
 
