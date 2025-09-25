@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import useSWR, { mutate } from "swr";
+import { TrashIcon } from '@heroicons/react/solid';
 
 const gastoCategories = ["Materiales", "Mano de Obra", "Gastos Adm", "Indirectos", "Otros"];
 const ingresoCategories = ["Pago Inicial", "Abono", "Saldo"];
@@ -174,7 +175,7 @@ export default function FinanzasClient() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ fecha: "", tipo: "GASTO", monto: "", categoria: "", proyectoId: "", subContratistaId: "", nota: "" });
+  const [form, setForm] = useState({ fecha: "", tipo: "GASTO", monto: "", categoria: "", proyectoId: "", subContratistaId: "", nota: "", clienteId: "", cliente: "", proveedorId: "", proveedor: "" });
   const dateRef = useRef<HTMLInputElement | null>(null);
 
   const { data: summary } = useSWR('/api/finanzas/summary', fetcher);
@@ -185,6 +186,10 @@ export default function FinanzasClient() {
   const entries = entriesResp?.items || [];
   const total = entriesResp?.total || 0;
   const { data: voluntarios } = useSWR('/api/voluntarios', fetcher);
+  const { data: clientesResp } = useSWR('/api/clientes', fetcher);
+  const clientesList = Array.isArray(clientesResp) ? clientesResp : [];
+  const { data: proveedoresResp } = useSWR('/api/proveedores', fetcher);
+  const proveedoresList = Array.isArray(proveedoresResp) ? proveedoresResp : [];
   const { data: proyectosResp } = useSWR('/api/proyectos?page=1&pageSize=100', fetcher);
   const subcontractors = Array.isArray(voluntarios)
     ? voluntarios.filter((v: any) => {
@@ -293,6 +298,7 @@ export default function FinanzasClient() {
         proyectoId: form.proyectoId || undefined,
         subContratistaId: form.subContratistaId || undefined,
         nota: form.nota || undefined,
+        metadata: { clienteId: form.clienteId || undefined, clienteLabel: form.cliente || undefined, proveedorId: form.proveedorId || undefined, proveedorLabel: form.proveedor || undefined }
       };
       let res;
       if (editingEntryId) {
@@ -303,7 +309,7 @@ export default function FinanzasClient() {
       if (!res.ok) throw res;
       setModalOpen(false);
       setEditingEntryId(null);
-      setForm({ fecha: '', tipo: 'GASTO', monto: '', categoria: '', proyectoId: '', subContratistaId: '', nota: '' });
+      setForm({ fecha: '', tipo: 'GASTO', monto: '', categoria: '', proyectoId: '', subContratistaId: '', nota: '', clienteId: '', cliente: '', proveedorId: '', proveedor: '' });
       await mutate(entriesKey);
       await mutate('/api/finanzas/summary');
     } catch (err) {
@@ -462,6 +468,10 @@ export default function FinanzasClient() {
                       proyectoId: r.proyectoId || '',
                       subContratistaId: r.subContratistaId || '',
                       nota: r.nota || '',
+                      clienteId: r.metadata?.clienteId || '',
+                      cliente: r.metadata?.clienteLabel || '',
+                      proveedorId: r.metadata?.proveedorId || '',
+                      proveedor: r.metadata?.proveedorLabel || '',
                     });
                     setModalOpen(true);
                   }}>
@@ -553,6 +563,24 @@ export default function FinanzasClient() {
                   ))}
                 </select>
               </div>
+              <div>
+                <label className="block text-sm">Cliente</label>
+                <select title="Cliente" aria-label="Cliente" value={form.clienteId} onChange={(e)=>{ const label = e.target.selectedOptions?.[0]?.text || ''; setForm(f=>({ ...f, clienteId: e.target.value, cliente: label })); }} className="input">
+                  <option value="">--Sin cliente--</option>
+                  {clientesList.map((c:any) => (
+                    <option key={c.id || c._id} value={c.id || c._id}>{(c.nombre || c.name || c.display) + (c.empresa ? ` (${c.empresa})` : '')}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm">Proveedor</label>
+                <select title="Proveedor" aria-label="Proveedor" value={form.proveedorId} onChange={(e)=>{ const label = e.target.selectedOptions?.[0]?.text || ''; setForm(f=>({ ...f, proveedorId: e.target.value, proveedor: label })); }} className="input">
+                  <option value="">--Sin proveedor--</option>
+                  {proveedoresList.map((p:any) => (
+                    <option key={p.id || p._id} value={p.id || p._id}>{(p.nombre || p.name || p.display) + (p.empresa ? ` (${p.empresa})` : '')}</option>
+                  ))}
+                </select>
+              </div>
               <div className="sm:col-span-2">
                 <label className="block text-sm">Nota</label>
                 <textarea title="Nota" aria-label="Nota" value={form.nota} onChange={(e)=>setForm(f=>({ ...f, nota: e.target.value }))} className="input h-24" />
@@ -561,10 +589,26 @@ export default function FinanzasClient() {
             <div className="mt-3 flex gap-2 justify-end">
               <button type="button" className="btn" onClick={()=>{ setModalOpen(false); setEditingEntryId(null); }}>Cancelar</button>
               <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? (editingEntryId ? 'Guardando...' : 'Guardando...') : (editingEntryId ? 'Actualizar' : 'Crear')}</button>
-            </div>
-           </form>
-         </div>
+             </form>
+           </div>
       )}
-    </div>
-  );
-}
+
+      {editingEntryId && (
+                 <button type="button" title="Eliminar" className="p-2 border rounded inline-flex items-center justify-center hover:bg-red-50 text-red-600" onClick={async ()=>{ if (!confirm('¿Eliminar registro?')) return; await handleDelete(editingEntryId); }} disabled={saving} aria-label="Eliminar">
+                   <TrashIcon className="h-5 w-5" />
+                 </button>
+               )}
+   </div>
+ }
+
+ async function handleDelete(id?: string | null) {
+    if (!id) return;
+    try {
+      await fetch(`/api/finanzas/${id}`, { method: 'DELETE' });
+      mutate('/api/finanzas');
+      mutate('/api/finanzas/summary');
+    } catch (e) {
+      console.error('Error eliminando registro', e);
+      alert('Error eliminando registro');
+    }
+  }

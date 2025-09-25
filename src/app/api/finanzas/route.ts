@@ -61,34 +61,37 @@ export async function POST(req: Request) {
 
     await connectMongo();
     const body = await req.json().catch(() => ({}));
+
+    // normalize fecha
+    const fechaVal = body.fecha
+      ? (typeof body.fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.fecha) ? new Date(`${body.fecha}T12:00:00Z`) : new Date(body.fecha))
+      : new Date();
+
+    // determine tipo: prefer proyecto -> INGRESO; else if metadata.proveedorId -> GASTO; otherwise use provided or default GASTO
+    let tipoFinal = body.tipo || 'GASTO';
+    if (body.proyectoId) tipoFinal = 'INGRESO';
+    else if (body.metadata && body.metadata.proveedorId) tipoFinal = 'GASTO';
+
+    // determine categoria default when routing automatically, but respect explicit body.categoria
+    let categoriaFinal = typeof body.categoria !== 'undefined' ? body.categoria : '';
+    if (!categoriaFinal) {
+      if (body.proyectoId) categoriaFinal = 'CxC';
+      else if (body.metadata && body.metadata.proveedorId) categoriaFinal = 'CxP';
+      else categoriaFinal = '';
+    }
+
     const doc = await FinanceEntry.create({
-      // if body.fecha is date-only (YYYY-MM-DD) interpret it as midday UTC to avoid previous-day issues
-      fecha: body.fecha ? (typeof body.fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.fecha) ? new Date(`${body.fecha}T12:00:00Z`) : new Date(body.fecha)) : new Date(),
-      tipo: body.tipo || 'GASTO',
+      fecha: fechaVal,
+      tipo: tipoFinal,
       monto: Number(body.monto) || 0,
-      categoria: body.categoria || '',
+      categoria: categoriaFinal || '',
       proyectoId: body.proyectoId || undefined,
       subContratistaId: body.subContratistaId || undefined,
       nota: body.nota || undefined,
+      metadata: typeof body.metadata !== 'undefined' ? body.metadata : undefined,
     });
+
     return NextResponse.json(doc);
-  } catch (e: any) {
-    console.error(e);
-    return NextResponse.json({ error: 'Unexpected' }, { status: 500 });
-  }
-}
-
-export async function DELETE(req: Request) {
-  try {
-    const e = await ensureAdmin();
-    if (!e.ok) return NextResponse.json({ error: 'Unauthorized' }, { status: e.status });
-
-    await connectMongo();
-    const url = new URL(req.url);
-    const id = url.searchParams.get('id');
-    if (!id) return NextResponse.json({ error: 'id required' }, { status: 400 });
-    await FinanceEntry.findByIdAndDelete(id);
-    return NextResponse.json({ ok: true });
   } catch (e: any) {
     console.error(e);
     return NextResponse.json({ error: 'Unexpected' }, { status: 500 });

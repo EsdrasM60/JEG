@@ -8,6 +8,7 @@ const FinanceEntrySchema = new mongoose.Schema({
   proyectoId: { type: String, default: undefined },
   subContratistaId: { type: String, default: undefined },
   nota: { type: String, default: undefined },
+  metadata: { type: mongoose.Schema.Types.Mixed, default: undefined },
   createdAt: { type: Date, default: Date.now }
 });
 

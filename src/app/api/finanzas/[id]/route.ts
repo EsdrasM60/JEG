@@ -49,6 +49,15 @@ export async function PATCH(req: Request) {
     if (typeof body.proyectoId !== 'undefined') update.proyectoId = body.proyectoId || undefined;
     if (typeof body.subContratistaId !== 'undefined') update.subContratistaId = body.subContratistaId || undefined;
     if (typeof body.nota !== 'undefined') update.nota = body.nota;
+    if (typeof body.metadata !== 'undefined') {
+      // merge with existing metadata to avoid wiping other metadata fields
+      try {
+        const existing = await FinanceEntry.findById(id).lean();
+        update.metadata = { ...(existing?.metadata || {}), ...(body.metadata || {}) };
+      } catch (e) {
+        update.metadata = body.metadata;
+      }
+    }
 
     const updated = await FinanceEntry.findByIdAndUpdate(id, update, { new: true }).lean();
     if (!updated) return NextResponse.json({ error: 'not found' }, { status: 404 });

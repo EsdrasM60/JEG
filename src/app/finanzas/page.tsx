@@ -181,7 +181,7 @@ export default function FinanzasPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ fecha: "", tipo: "GASTO", monto: "", categoria: "", proyectoId: "", subContratistaId: "", nota: "" });
+  const [form, setForm] = useState({ fecha: "", tipo: "GASTO", monto: "", categoria: "", proyectoId: "", subContratistaId: "", nota: "", clienteId: "", cliente: "", proveedorId: "", proveedor: "" });
   const dateRef = useRef<HTMLInputElement | null>(null);
 
   const { data: summary } = useSWR('/api/finanzas/summary', fetcher);
@@ -192,6 +192,10 @@ export default function FinanzasPage() {
   const entries = entriesResp?.items || [];
   const total = entriesResp?.total || 0;
   const { data: voluntarios } = useSWR('/api/voluntarios', fetcher);
+  const { data: clientesResp } = useSWR('/api/clientes', fetcher);
+  const clientesList = Array.isArray(clientesResp) ? clientesResp : [];
+  const { data: proveedoresResp } = useSWR('/api/proveedores', fetcher);
+  const proveedoresList = Array.isArray(proveedoresResp) ? proveedoresResp : [];
   const { data: proyectosResp } = useSWR('/api/proyectos?page=1&pageSize=100', fetcher);
   // select employees whose cargo indicates they are subcontractors (covers 'Contratista', 'subcontratista', etc.)
   const subcontractors = Array.isArray(voluntarios)
@@ -324,6 +328,7 @@ export default function FinanzasPage() {
         proyectoId: form.proyectoId || undefined,
         subContratistaId: form.subContratistaId || undefined,
         nota: form.nota || undefined,
+        metadata: { clienteId: form.clienteId || undefined, clienteLabel: form.cliente || undefined, proveedorId: form.proveedorId || undefined, proveedorLabel: form.proveedor || undefined }
       };
       let res;
       if (editingEntryId) {
@@ -336,7 +341,7 @@ export default function FinanzasPage() {
       if (!res.ok) throw res;
       setModalOpen(false);
       setEditingEntryId(null);
-      setForm({ fecha: '', tipo: 'GASTO', monto: '', categoria: '', proyectoId: '', subContratistaId: '', nota: '' });
+      setForm({ fecha: '', tipo: 'GASTO', monto: '', categoria: '', proyectoId: '', subContratistaId: '', nota: '', clienteId: '', cliente: '', proveedorId: '', proveedor: '' });
       // revalidate lists (with current filters) and summary
       await mutate(entriesKey);
       await mutate('/api/finanzas/summary');
@@ -536,6 +541,8 @@ export default function FinanzasPage() {
                   <th className="p-3 text-left">Tipo</th>
                   <th className="p-3 text-right">Monto</th>
                   <th className="p-3 text-left">Categoría</th>
+                  <th className="p-3 text-left">Cliente</th>
+                  <th className="p-3 text-left">Proveedor</th>
                   <th className="p-3 text-left">Proyecto</th>
                   <th className="p-3 text-left">Sub Contratista</th>
                   <th className="p-3 text-left">Nota</th>
@@ -549,12 +556,14 @@ export default function FinanzasPage() {
                     <td className="p-3 border-b border-neutral-200">{d.tipo || '-'}</td>
                     <td className="p-3 border-b border-neutral-200 text-right">{Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(Number(d.monto) || 0)}</td>
                     <td className="p-3 border-b border-neutral-200">{d.categoria || d.metadata?.categoria || '-'}</td>
+                    <td className="p-3 border-b border-neutral-200">{d.metadata?.clienteLabel || '-'}</td>
+                    <td className="p-3 border-b border-neutral-200">{d.metadata?.proveedorLabel || '-'}</td>
                     <td className="p-3 border-b border-neutral-200">{proyectoMap.get(String(d.proyectoId)) || d.proyectoId || '-'}</td>
                     <td className="p-3 border-b border-neutral-200">{subcontractorMap.get(String(d.subContratistaId)) || d.subContratistaId || (d.metadata?.subContratista || '-')}</td>
                     <td className="p-3 border-b border-neutral-200">{d.nota || d.metadata?.nota || d.metadata?.descripcion || '-'}</td>
                     <td className="p-3 border-b border-neutral-200">
                       <div className="flex items-center gap-2">
-                        <button type="button" title="Editar" className="p-1 border rounded inline-flex items-center justify-center hover:bg-neutral-100" onClick={(e)=>{ e.stopPropagation(); setEditingEntryId(String(d._id)); setForm({ fecha: new Date(d.fecha).toISOString().slice(0,10), tipo: d.tipo || 'GASTO', monto: Intl.NumberFormat('en-US',{ minimumFractionDigits:2 }).format(Number(d.monto)||0), categoria: d.categoria||d.metadata?.categoria||'', proyectoId: d.proyectoId||'', subContratistaId: d.subContratistaId||'', nota: d.nota||d.metadata?.nota||'' }); setModalOpen(true); }} aria-label="Editar">
+                        <button type="button" title="Editar" className="p-1 border rounded inline-flex items-center justify-center hover:bg-neutral-100" onClick={(e)=>{ e.stopPropagation(); setEditingEntryId(String(d._id)); setForm({ fecha: new Date(d.fecha).toISOString().slice(0,10), tipo: d.tipo || 'GASTO', monto: Intl.NumberFormat('en-US',{ minimumFractionDigits:2 }).format(Number(d.monto)||0), categoria: d.categoria||d.metadata?.categoria||'', proyectoId: d.proyectoId||'', subContratistaId: d.subContratistaId||'', nota: d.nota||d.metadata?.nota||'', clienteId: d.metadata?.clienteId||'', cliente: d.metadata?.clienteLabel||'', proveedorId: d.metadata?.proveedorId||'', proveedor: d.metadata?.proveedorLabel||'' }); setModalOpen(true); }} aria-label="Editar">
                           <PencilSquareIcon className="h-5 w-5 text-neutral-700" />
                         </button>
                         <button type="button" title="Eliminar" className="p-1 border rounded inline-flex items-center justify-center hover:bg-red-50 text-red-600" onClick={(e)=>{ e.stopPropagation(); handleDelete(d._id); }} aria-label="Eliminar">
@@ -644,6 +653,24 @@ export default function FinanzasPage() {
                   <option value="">--Seleccionar--</option>
                   {subcontractors.map((s: any) => (
                     <option key={s.id || s._id} value={s.id || s._id}>{`${(s.nombre || '').trim()} ${(s.apellido || '').trim()}`.trim() || (s.empresa || '')}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm">Cliente</label>
+                <select title="Cliente" aria-label="Cliente" value={form.clienteId} onChange={(e)=>{ const label = e.target.selectedOptions?.[0]?.text || ''; setForm(f=>({ ...f, clienteId: e.target.value, cliente: label })); }} className="input">
+                  <option value="">--Sin cliente--</option>
+                  {clientesList.map((c:any) => (
+                    <option key={c.id || c._id} value={c.id || c._id}>{(c.nombre || c.name || c.display) + (c.empresa ? ` (${c.empresa})` : '')}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <label className="block text-sm">Proveedor</label>
+                <select title="Proveedor" aria-label="Proveedor" value={form.proveedorId} onChange={(e)=>{ const label = e.target.selectedOptions?.[0]?.text || ''; setForm(f=>({ ...f, proveedorId: e.target.value, proveedor: label })); }} className="input">
+                  <option value="">--Sin proveedor--</option>
+                  {proveedoresList.map((p:any) => (
+                    <option key={p.id || p._id} value={p.id || p._id}>{(p.nombre || p.name || p.display) + (p.empresa ? ` (${p.empresa})` : '')}</option>
                   ))}
                 </select>
               </div>
