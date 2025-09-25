@@ -2,7 +2,7 @@
 
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import useSWR, { mutate } from "swr";
-import { TrashIcon } from '@heroicons/react/solid';
+import { TrashIcon } from '@heroicons/react/24/solid';
 
 const gastoCategories = ["Materiales", "Mano de Obra", "Gastos Adm", "Indirectos", "Otros"];
 const ingresoCategories = ["Pago Inicial", "Abono", "Saldo"];
@@ -589,7 +589,8 @@ export default function FinanzasClient() {
             <div className="mt-3 flex gap-2 justify-end">
               <button type="button" className="btn" onClick={()=>{ setModalOpen(false); setEditingEntryId(null); }}>Cancelar</button>
               <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? (editingEntryId ? 'Guardando...' : 'Guardando...') : (editingEntryId ? 'Actualizar' : 'Crear')}</button>
-             </form>
+            </div>
+          </form>
            </div>
       )}
 
@@ -599,7 +600,7 @@ export default function FinanzasClient() {
                  </button>
                )}
    </div>
- }
+ );
 
  async function handleDelete(id?: string | null) {
     if (!id) return;
@@ -612,3 +613,4 @@ export default function FinanzasClient() {
       alert('Error eliminando registro');
     }
   }
+}

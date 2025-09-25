@@ -1,14 +1,10 @@
-declare module '@heroicons/react/solid' {
+declare module '@heroicons/react/24/solid' {
   const content: any;
+  export const TrashIcon: any;
   export default content;
 }
 
-declare module '@heroicons/react/outline' {
-  const content: any;
-  export default content;
-}
-
-declare module '@heroicons/react/*' {
+declare module '@heroicons/react/24/outline' {
   const content: any;
   export default content;
 }
