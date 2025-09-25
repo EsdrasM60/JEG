@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import useSWR, { mutate } from "swr";
 import Link from 'next/link';
+import { PencilSquareIcon, TrashIcon } from '@heroicons/react/24/outline';
 
 const gastoCategories = ["Materiales", "Mano de Obra", "Gastos Adm", "Indirectos", "Otros"];
 const ingresoCategories = ["Pago Inicial", "Abono", "Saldo"];
@@ -553,8 +554,12 @@ export default function FinanzasPage() {
                     <td className="p-3 border-b border-neutral-200">{d.nota || d.metadata?.nota || d.metadata?.descripcion || '-'}</td>
                     <td className="p-3 border-b border-neutral-200">
                       <div className="flex items-center gap-2">
-                        <button type="button" className="btn btn-ghost" onClick={(e)=>{ e.stopPropagation(); setEditingEntryId(String(d._id)); setForm({ fecha: new Date(d.fecha).toISOString().slice(0,10), tipo: d.tipo || 'GASTO', monto: Intl.NumberFormat('en-US',{ minimumFractionDigits:2 }).format(Number(d.monto)||0), categoria: d.categoria||d.metadata?.categoria||'', proyectoId: d.proyectoId||'', subContratistaId: d.subContratistaId||'', nota: d.nota||d.metadata?.nota||'' }); setModalOpen(true); }} aria-label="Editar">Editar</button>
-                        <button type="button" className="btn btn-danger" onClick={(e)=>{ e.stopPropagation(); handleDelete(d._id); }} aria-label="Eliminar">Eliminar</button>
+                        <button type="button" title="Editar" className="p-1 border rounded inline-flex items-center justify-center hover:bg-neutral-100" onClick={(e)=>{ e.stopPropagation(); setEditingEntryId(String(d._id)); setForm({ fecha: new Date(d.fecha).toISOString().slice(0,10), tipo: d.tipo || 'GASTO', monto: Intl.NumberFormat('en-US',{ minimumFractionDigits:2 }).format(Number(d.monto)||0), categoria: d.categoria||d.metadata?.categoria||'', proyectoId: d.proyectoId||'', subContratistaId: d.subContratistaId||'', nota: d.nota||d.metadata?.nota||'' }); setModalOpen(true); }} aria-label="Editar">
+                          <PencilSquareIcon className="h-5 w-5 text-neutral-700" />
+                        </button>
+                        <button type="button" title="Eliminar" className="p-1 border rounded inline-flex items-center justify-center hover:bg-red-50 text-red-600" onClick={(e)=>{ e.stopPropagation(); handleDelete(d._id); }} aria-label="Eliminar">
+                          <TrashIcon className="h-5 w-5" />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -650,7 +655,9 @@ export default function FinanzasPage() {
             <div className="mt-3 flex gap-2 justify-end">
               <button type="button" className="btn" onClick={()=>{ setModalOpen(false); setEditingEntryId(null); }}>Cancelar</button>
               {editingEntryId && (
-                <button type="button" className="btn btn-danger" onClick={async ()=>{ if (!confirm('¿Eliminar registro?')) return; await handleDelete(editingEntryId); }} disabled={saving}>Eliminar</button>
+                <button type="button" title="Eliminar" className="p-2 border rounded inline-flex items-center justify-center hover:bg-red-50 text-red-600" onClick={async ()=>{ if (!confirm('¿Eliminar registro?')) return; await handleDelete(editingEntryId); }} disabled={saving} aria-label="Eliminar">
+                  <TrashIcon className="h-5 w-5" />
+                </button>
               )}
               <button type="submit" className="btn btn-primary" disabled={saving}>{saving ? (editingEntryId ? 'Guardando...' : 'Guardando...') : (editingEntryId ? 'Actualizar' : 'Crear')}</button>
             </div>
