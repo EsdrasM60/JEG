@@ -80,6 +80,17 @@ export async function POST(req: Request) {
       else categoriaFinal = '';
     }
 
+    // Prevent expenses classified as 'Mano de Obra' from feeding CxP (accounts payable)
+    const _norm = (v: any) => (v === undefined || v === null) ? '' : String(v).toLowerCase();
+    const isManoDeObra = (_norm(categoriaFinal).includes('mano') && _norm(categoriaFinal).includes('obra'))
+      || (_norm(body.categoria).includes('mano') && _norm(body.categoria).includes('obra'))
+      || (_norm(body.metadata?.categoria).includes('mano') && _norm(body.metadata?.categoria).includes('obra'));
+    if (tipoFinal === 'GASTO' && isManoDeObra) {
+      // enforce category label and mark metadata so clients/integrations know this must not create CxP
+      categoriaFinal = 'Mano de Obra';
+      body.metadata = { ...(body.metadata || {}), nonCxP: true };
+    }
+
     const doc = await FinanceEntry.create({
       fecha: fechaVal,
       tipo: tipoFinal,
