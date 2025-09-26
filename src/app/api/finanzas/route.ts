@@ -11,6 +11,20 @@ async function ensureAdmin() {
   return { ok: true };
 }
 
+const _norm = (v: any) => (v === undefined || v === null) ? '' : String(v).toLowerCase();
+const isExcludedCategory = (v: any) => {
+  const s = _norm(v);
+  if (!s) return false;
+  return s.includes('mano') || s.includes('gastos') || s.includes('indirect');
+};
+const canonicalCategory = (v: any) => {
+  const s = _norm(v);
+  if (s.includes('mano')) return 'Mano de Obra';
+  if (s.includes('gastos')) return 'Gastos Adm';
+  if (s.includes('indirect')) return 'Indirectos';
+  return typeof v === 'string' ? v : '';
+};
+
 export async function GET(req: Request) {
   try {
     const e = await ensureAdmin();
@@ -67,27 +81,19 @@ export async function POST(req: Request) {
       ? (typeof body.fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.fecha) ? new Date(`${body.fecha}T12:00:00Z`) : new Date(body.fecha))
       : new Date();
 
-    // determine tipo: prefer proyecto -> INGRESO; else if metadata.proveedorId -> GASTO; otherwise use provided or default GASTO
+    // determine tipo: prefer explicit body.tipo; do NOT infer from proyectoId or proveedorId
     let tipoFinal = body.tipo || 'GASTO';
-    if (body.proyectoId) tipoFinal = 'INGRESO';
-    else if (body.metadata && body.metadata.proveedorId) tipoFinal = 'GASTO';
 
-    // determine categoria default when routing automatically, but respect explicit body.categoria
+    // determine categoria: respect explicit body.categoria; do NOT auto-route to CxC/CxP based on proyectoId or proveedorId
     let categoriaFinal = typeof body.categoria !== 'undefined' ? body.categoria : '';
-    if (!categoriaFinal) {
-      if (body.proyectoId) categoriaFinal = 'CxC';
-      else if (body.metadata && body.metadata.proveedorId) categoriaFinal = 'CxP';
-      else categoriaFinal = '';
-    }
 
-    // Prevent expenses classified as 'Mano de Obra' from feeding CxP (accounts payable)
-    const _norm = (v: any) => (v === undefined || v === null) ? '' : String(v).toLowerCase();
-    const isManoDeObra = (_norm(categoriaFinal).includes('mano') && _norm(categoriaFinal).includes('obra'))
-      || (_norm(body.categoria).includes('mano') && _norm(body.categoria).includes('obra'))
-      || (_norm(body.metadata?.categoria).includes('mano') && _norm(body.metadata?.categoria).includes('obra'));
-    if (tipoFinal === 'GASTO' && isManoDeObra) {
-      // enforce category label and mark metadata so clients/integrations know this must not create CxP
-      categoriaFinal = 'Mano de Obra';
+    // Previous behavior auto-assigned CxC/CxP when proyectoId or proveedorId existed.
+    // To keep CxC and CxP modules independent, do not auto-assign those categories here.
+
+    // Prevent certain expense categories from feeding CxP (accounts payable)
+    const categorySource = body.categoria || body.metadata?.categoria || categoriaFinal;
+    if (tipoFinal === 'GASTO' && isExcludedCategory(categorySource)) {
+      categoriaFinal = canonicalCategory(categorySource);
       body.metadata = { ...(body.metadata || {}), nonCxP: true };
     }
 

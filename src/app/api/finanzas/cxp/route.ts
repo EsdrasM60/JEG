@@ -38,9 +38,17 @@ export async function GET(req: Request) {
     const pageSize = Math.min(1000, Math.max(1, parseInt(sp.get('pageSize') || '1000', 10) || 1000));
 
     const match: any = { tipo: 'GASTO' };
-    if (categoria) match.categoria = categoria;
+    if (categoria) {
+      match.categoria = categoria;
+    } else {
+      // Only include entries explicitly created as CxP (categoria or metadata.categoria equals 'CxP')
+      const re = new RegExp('^CxP$', 'i');
+      match.$or = [ { categoria: { $regex: re } }, { 'metadata.categoria': { $regex: re } } ];
+    }
     if (subContratistaId) match.subContratistaId = subContratistaId;
     if (proyectoId) match.proyectoId = proyectoId;
+    // exclude entries explicitly marked as nonCxP
+    match['metadata.nonCxP'] = { $ne: true };
     if (desde || hasta) {
       match.fecha = {};
       if (desde) match.fecha.$gte = desde;

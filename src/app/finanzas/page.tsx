@@ -477,59 +477,59 @@ export default function FinanzasPage() {
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div className="p-4 border rounded bg-white shadow-sm w-72">
               <div className="flex items-center justify-between">
-                <div className="text-sm font-medium">Cuenta por Cobrar (CxC)</div>
-                <div className="text-sm text-muted">Total</div>
-              </div>
-              <div className="mt-3 text-2xl font-semibold">{formatNumber(Number(cuentasIngresos ?? cxcEntries.reduce((s: number, x: any) => s + (Number(x.monto) || 0), 0)))}</div>
-              <div className="mt-3 text-xs text-muted">
-                {cxcByProject.slice(0,3).map((p:any)=> (
-                  <div key={String(p.key)} className="flex justify-between">
-                    <div>{proyectoMap.get(String(p.key)) || String(p.key)}</div>
-                    <div>{formatNumber(p.total)}</div>
-                  </div>
-                ))}
-                {cxcByProject.length === 0 && <div>No hay items</div>}
-              </div>
-            </div>
+                <div className="text-sm font-medium">Total Ingresos</div>
+                 <div className="text-sm text-muted">Total</div>
+               </div>
+               <div className="mt-3 text-2xl font-semibold">{formatNumber(Number(cuentasIngresos ?? cxcEntries.reduce((s: number, x: any) => s + (Number(x.monto) || 0), 0)))}</div>
+               <div className="mt-3 text-xs text-muted">
+                 {cxcByProject.slice(0,3).map((p:any)=> (
+                   <div key={String(p.key)} className="flex justify-between">
+                     <div>{proyectoMap.get(String(p.key)) || String(p.key)}</div>
+                     <div>{formatNumber(p.total)}</div>
+                   </div>
+                 ))}
+                 {cxcByProject.length === 0 && <div>No hay items</div>}
+               </div>
+             </div>
 
-            <div className="p-4 border rounded bg-white shadow-sm w-72">
-              <div className="flex items-center justify-between">
-                <div className="text-sm font-medium">Cuenta por Pagar (CxP)</div>
-                <div className="text-sm text-muted">Total</div>
-              </div>
-              <div className="mt-3 text-2xl font-semibold">{formatNumber(Number(cuentasGastos ?? cxpEntries.reduce((s: number, x: any) => s + (Number(x.monto) || 0), 0)))}</div>
-              <div className="mt-3 text-xs text-muted">
-                {cxpByProject.slice(0,3).map((p:any)=> (
-                  <div key={String(p.key)} className="flex justify-between">
-                    <div>{proyectoMap.get(String(p.key)) || String(p.key)}</div>
-                    <div>{formatNumber(p.total)}</div>
-                  </div>
-                ))}
-                {cxpByProject.length === 0 && <div>No hay items</div>}
-              </div>
-            </div>
-          </div>
-        </div>
-      </section>
+             <div className="p-4 border rounded bg-white shadow-sm w-72">
+               <div className="flex items-center justify-between">
+                <div className="text-sm font-medium">Total Gastos</div>
+                 <div className="text-sm text-muted">Total</div>
+               </div>
+               <div className="mt-3 text-2xl font-semibold">{formatNumber(Number(cuentasGastos ?? cxpEntries.reduce((s: number, x: any) => s + (Number(x.monto) || 0), 0)))}</div>
+               <div className="mt-3 text-xs text-muted">
+                 {cxpByProject.slice(0,3).map((p:any)=> (
+                   <div key={String(p.key)} className="flex justify-between">
+                     <div>{proyectoMap.get(String(p.key)) || String(p.key)}</div>
+                     <div>{formatNumber(p.total)}</div>
+                   </div>
+                 ))}
+                 {cxpByProject.length === 0 && <div>No hay items</div>}
+               </div>
+             </div>
+           </div>
+         </div>
+       </section>
 
-      {/* Ingresos / Gastos section (restored) */}
-      <section className="mt-6">
-        <div className="flex items-center justify-between">
-          <h2 className="text-lg font-semibold">Ingresos / Gastos</h2>
-        </div>
+       {/* Ingresos / Gastos section (restored) */}
+       <section className="mt-6">
+         <div className="flex items-center justify-between">
+           <h2 className="text-lg font-semibold">Ingresos / Gastos</h2>
+         </div>
 
-        {/* Totals and chart */}
-        <div className="mt-4 mb-4">
-          <div className="text-sm text-muted mb-2">Ingresos / Gastos (Año {new Date().getFullYear()})</div>
-          <div className="flex flex-col lg:flex-row items-center justify-center gap-6">
+         {/* Totals and chart */}
+         <div className="mt-4 mb-4">
+           <div className="text-sm text-muted mb-2">Ingresos / Gastos (Año {new Date().getFullYear()})</div>
+           <div className="flex flex-col lg:flex-row items-center justify-center gap-6">
             <div className="flex items-center gap-4 flex-1 justify-center">
-              <PieSummary ingresos={totals.ingresos} gastos={totals.gastos} />
+              <div className="text-sm text-muted text-center">Ingresos: <b>{formatNumber(totals.ingresos)}</b> &nbsp;|&nbsp; Gastos: <b>{formatNumber(totals.gastos)}</b> &nbsp;|&nbsp; Balance: <b>{formatNumber(totals.ingresos - totals.gastos)}</b></div>
             </div>
-            <div className="flex-1 max-w-4xl w-full">
-              <BarChart data={monthlyData} />
-            </div>
-          </div>
-        </div>
+             <div className="flex-1 max-w-4xl w-full">
+               <BarChart data={monthlyData} />
+             </div>
+           </div>
+         </div>
 
         {/* Listado de entradas (campos iguales al modal "Nuevo") */}
         <div className="mt-6">

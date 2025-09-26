@@ -38,7 +38,14 @@ export async function GET(req: Request) {
     const pageSize = Math.min(1000, Math.max(1, parseInt(sp.get('pageSize') || '1000', 10) || 1000));
 
     const match: any = { tipo: 'INGRESO' };
-    if (categoria) match.categoria = categoria;
+
+    if (categoria) {
+      match.categoria = categoria;
+    } else {
+      const re = new RegExp('^CxC$', 'i');
+      match.$or = [ { categoria: { $regex: re } }, { 'metadata.categoria': { $regex: re } } ];
+    }
+
     if (subContratistaId) match.subContratistaId = subContratistaId;
     if (proyectoId) match.proyectoId = proyectoId;
     if (desde || hasta) {
