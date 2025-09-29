@@ -81,7 +81,28 @@ export default function CxPPage() {
 
   const clearFilters = () => { setProveedorFilter(''); setProjectFilter(''); setEstadoFilter(''); };
 
-  React.useEffect(() => { setLocalInvoices(items || []); }, [items]);
+  React.useEffect(() => {
+    const mapped = (items || []).map((inv: any) => {
+      const meta = inv.metadata || {};
+      const montoSin = (inv.montoSinItbis ?? meta.montoSinItbis ?? inv.monto ?? 0);
+      const itbis = (inv.itbis ?? meta.itbis ?? 0);
+      const total = (inv.totalAmount ?? meta.totalAmount ?? montoSin + itbis);
+      const balance = (inv.balance ?? meta.balance ?? inv.monto ?? total);
+      return {
+        ...inv,
+        montoSinItbis: montoSin,
+        itbis: itbis,
+        totalAmount: total,
+        diasCredito: inv.diasCredito ?? meta.diasCredito ?? 0,
+        estado: inv.estado ?? meta.estado ?? 'Pendiente',
+        balance: balance,
+        proveedor: (inv.proveedor ?? meta.proveedorLabel ?? meta.proveedor) ?? '',
+        proveedorId: (inv.proveedorId ?? meta.proveedorId) ?? undefined,
+        factura: (inv.factura ?? meta.factura) ?? '',
+      };
+    });
+    setLocalInvoices(mapped);
+   }, [items]);
   React.useEffect(() => { setEditingId(null); setShowDeleteConfirm(false); }, [page, pageSize]);
 
   const handleSort = (key: string) => {
