@@ -3,6 +3,7 @@
 import React, { useEffect, useState, useRef, useMemo } from "react";
 import useSWR, { mutate } from "swr";
 import TrashIcon from '@heroicons/react/24/solid/TrashIcon';
+import { toISOFromDateInput, formatDateTz, inputDateFromStored } from '@/lib/dates';
 
 const gastoCategories = ["Materiales", "Mano de Obra", "Gastos Adm", "Indirectos", "Otros"];
 const ingresoCategories = ["Pago Inicial", "Abono", "Saldo"];
@@ -175,7 +176,7 @@ export default function FinanzasClient() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingEntryId, setEditingEntryId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const [form, setForm] = useState({ fecha: "", tipo: "GASTO", monto: "", categoria: "", proyectoId: "", subContratistaId: "", nota: "", clienteId: "", cliente: "", proveedorId: "", proveedor: "" });
+  const [form, setForm] = useState({ fecha: inputDateFromStored(new Date().toISOString()), tipo: "GASTO", monto: "", categoria: "", proyectoId: "", subContratistaId: "", nota: "", clienteId: "", cliente: "", proveedorId: "", proveedor: "" });
   const dateRef = useRef<HTMLInputElement | null>(null);
 
   const { data: summary } = useSWR('/api/finanzas/summary', fetcher);
@@ -461,7 +462,7 @@ export default function FinanzasClient() {
                   <tr key={r._id} className="border-t cursor-pointer hover:bg-[color:var(--surface-2)]" onClick={() => {
                     setEditingEntryId(String(r._id));
                     setForm({
-                      fecha: new Date(r.fecha).toISOString().slice(0,10),
+                      fecha: inputDateFromStored(inv.fecha ? inv.fecha : new Date().toISOString()),
                       tipo: r.tipo || 'GASTO',
                       monto: formatCurrency(Number(r.monto) || 0),
                       categoria: r.categoria || '',

@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
+import { toISOFromDateInput, formatDateTz, inputDateFromStored } from '@/lib/dates';
 
 const fetcher = (url: string) => fetch(url).then(r => r.ok ? r.json() : Promise.reject(r));
 
@@ -10,10 +11,7 @@ function formatCurrency(n: number) {
 }
 
 function formatDate(d: string | Date | undefined) {
-  if (!d) return '-';
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return '-';
-  return dt.toLocaleDateString('en-GB');
+  return formatDateTz(d);
 }
 
 export const dynamic = 'force-dynamic';
@@ -61,7 +59,7 @@ export default function CxPPage() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [form, setForm] = useState<any>({
-    fecha: new Date().toISOString().slice(0,10),
+    fecha: inputDateFromStored(new Date().toISOString()),
     proveedorId: '',
     proveedor: '',
     proyectoId: '',
@@ -165,7 +163,7 @@ export default function CxPPage() {
     const total = montoSin + itbis;
     const newInv = {
       id: `local-${Date.now()}`,
-      fecha: new Date(form.fecha).toISOString(),
+      fecha: toISOFromDateInput(form.fecha),
       proveedorId: form.proveedorId,
       proveedor: form.proveedor,
       proyectoId: form.proyectoId,
@@ -226,7 +224,7 @@ export default function CxPPage() {
   function openEdit(inv: any) {
     setEditingId(inv._id || inv.id || null);
     setForm({
-      fecha: inv.fecha ? new Date(inv.fecha).toISOString().slice(0,10) : new Date().toISOString().slice(0,10),
+      fecha: inputDateFromStored(inv.fecha ? inv.fecha : new Date().toISOString()),
       proveedorId: inv.proveedorId || inv.metadata?.proveedorId || '',
       proveedor: inv.proveedor || inv.metadata?.proveedorLabel || '',
       proyectoId: inv.proyectoId || '',

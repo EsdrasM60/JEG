@@ -2,6 +2,7 @@
 import React, { useMemo, useState } from 'react';
 import useSWR from 'swr';
 import Link from 'next/link';
+import { toISOFromDateInput, formatDateTz, inputDateFromStored } from '@/lib/dates';
 
 const fetcher = (url: string) => fetch(url).then(r => r.ok ? r.json() : Promise.reject(r));
 
@@ -10,10 +11,7 @@ function formatCurrency(n: number) {
 }
 
 function formatDate(d: string | Date | undefined) {
-  if (!d) return '-';
-  const dt = new Date(d);
-  if (isNaN(dt.getTime())) return '-';
-  return dt.toLocaleDateString('en-GB'); // DD/MM/YYYY style
+  return formatDateTz(d);
 }
 
 export default function CxCClient() {
@@ -72,17 +70,7 @@ export default function CxCClient() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
-  const [form, setForm] = useState<any>({
-    fecha: new Date().toISOString().slice(0,10),
-    clienteId: '',
-    cliente: '',
-    proyectoId: '',
-    factura: '',
-    montoSinItbis: '',
-    itbis: '',
-    diasCredito: 0,
-    estado: 'Pendiente',
-  });
+  const [form, setForm] = useState({ fecha: inputDateFromStored(new Date().toISOString()), clienteId: '', cliente: '', proyectoId: '', factura: '', montoSinItbis: '', itbis: '', diasCredito: 0, estado: 'Pendiente' });
 
   // client-side sorting / filtering state
   const [sortKey, setSortKey] = useState<string>('fecha');
@@ -161,7 +149,7 @@ export default function CxCClient() {
     const total = montoSin + itbis;
     const newInv = {
       id: `local-${Date.now()}`,
-      fecha: new Date(form.fecha).toISOString(),
+      fecha: toISOFromDateInput(form.fecha),
       clienteId: form.clienteId,
       cliente: form.cliente,
       proyectoId: form.proyectoId,
@@ -220,7 +208,7 @@ export default function CxCClient() {
   function openEdit(inv: any) {
     setEditingId(inv._id || inv.id || null);
     setForm({
-      fecha: inv.fecha ? new Date(inv.fecha).toISOString().slice(0,10) : new Date().toISOString().slice(0,10),
+      fecha: inputDateFromStored(inv.fecha ? inv.fecha : new Date().toISOString()),
       clienteId: inv.clienteId || inv.clienteId || '',
       cliente: inv.cliente || inv.metadata?.clienteLabel || inv.cliente || '',
       proyectoId: inv.proyectoId || '',

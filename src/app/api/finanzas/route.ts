@@ -25,6 +25,16 @@ const canonicalCategory = (v: any) => {
   return typeof v === 'string' ? v : '';
 };
 
+function parseDateParam(value?: string, endOfDay = false) {
+  if (!value) return undefined;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    // Interpret date-only strings in America/Santo_Domingo (UTC-04:00) to avoid timezone rollover
+    return new Date(`${value}T${endOfDay ? '23:59:59' : '00:00:00'}-04:00`);
+  }
+  const d = new Date(value);
+  return isNaN(d.getTime()) ? undefined : d;
+}
+
 export async function GET(req: Request) {
   try {
     const e = await ensureAdmin();
@@ -50,11 +60,11 @@ export async function GET(req: Request) {
     // treat date-only params (YYYY-MM-DD) as full-day ranges in UTC
     if (desde) {
       const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(desde);
-      q.fecha.$gte = isDateOnly ? new Date(`${desde}T00:00:00Z`) : new Date(desde);
+      q.fecha.$gte = isDateOnly ? parseDateParam(desde) : new Date(desde);
     }
     if (hasta) {
       const isDateOnly = /^\d{4}-\d{2}-\d{2}$/.test(hasta);
-      q.fecha.$lte = isDateOnly ? new Date(`${hasta}T23:59:59Z`) : new Date(hasta);
+      q.fecha.$lte = isDateOnly ? parseDateParam(hasta, true) : new Date(hasta);
     }
 
     // total matching documents for pagination
