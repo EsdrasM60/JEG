@@ -128,28 +128,25 @@ export default function CxPPage() {
     });
 
     const sorted = filtered.sort((a:any,b:any) => {
-      const dir = sortDir === 'asc' ? 1 : -1;
-      let va:any = a[sortKey as keyof any];
-      let vb:any = b[sortKey as keyof any];
-
+      const av = a[sortKey] ?? '';
+      const bv = b[sortKey] ?? '';
       if (sortKey === 'fecha') {
-        va = new Date(va).getTime() || 0;
-        vb = new Date(vb).getTime() || 0;
-      } else if (['montoSinItbis','itbis','totalAmount','balance'].includes(sortKey)) {
-        va = Number(va) || 0;
-        vb = Number(vb) || 0;
-      } else {
-        va = String(va || '').toLowerCase();
-        vb = String(vb || '').toLowerCase();
+        return sortDir === 'asc' ? new Date(String(av)).getTime() - new Date(String(bv)).getTime() : new Date(String(bv)).getTime() - new Date(String(av)).getTime();
       }
-
-      if (va < vb) return -1 * dir;
-      if (va > vb) return 1 * dir;
-      return 0;
+      if (typeof av === 'number' || typeof bv === 'number') return sortDir === 'asc' ? (Number(av) - Number(bv)) : (Number(bv) - Number(av));
+      return sortDir === 'asc' ? String(av).localeCompare(String(bv)) : String(bv).localeCompare(String(av));
     });
 
-    return sorted;
-  }, [localInvoices, proyectoMap, sortKey, sortDir, proveedorFilter, projectFilter, estadoFilter]);
+    // compute cumulative running balance: running = previous running + current totalAmount
+    let running = 0;
+    const withRunning = sorted.map((inv:any) => {
+      const amt = Number(inv.totalAmount ?? inv.monto ?? 0) || 0;
+      running = running + amt;
+      return { ...inv, runningBalance: running };
+    });
+
+    return withRunning;
+  }, [localInvoices, proveedorFilter, projectFilter, estadoFilter, sortKey, sortDir, proyectoMap]);
 
   const finalDisplayInvoices = displayInvoices.map((r:any) => ({ ...r }));
 
@@ -324,7 +321,7 @@ export default function CxPPage() {
                   <td className="p-4 border-b border-neutral-200 text-right">{formatCurrency(Number(inv.totalAmount) || 0)}</td>
                   <td className="p-4 border-b border-neutral-200">{inv.diasCredito}</td>
                   <td className="p-4 border-b border-neutral-200">{inv.estado}</td>
-                  <td className="p-4 border-b border-neutral-200 text-right">{formatCurrency(Number(inv.balance) || 0)}</td>
+                  <td className="p-4 border-b border-neutral-200 text-right">{formatCurrency(Number(inv.runningBalance ?? inv.balance) || 0)}</td>
                 </tr>
                ))}
               </tbody>
