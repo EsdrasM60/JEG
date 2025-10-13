@@ -71,6 +71,11 @@ export default function CxCClient() {
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [form, setForm] = useState({ fecha: inputDateFromStored(new Date().toISOString()), clienteId: '', cliente: '', proyectoId: '', factura: '', montoSinItbis: '', itbis: '', diasCredito: 0, estado: 'Pendiente' });
+  // payment modal state
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentInvoice, setPaymentInvoice] = useState<any | null>(null);
+  const [paymentForm, setPaymentForm] = useState({ monto: '', fecha: inputDateFromStored(new Date().toISOString()), metodo: '', nota: '' });
+  const [paymentSaving, setPaymentSaving] = useState(false);
 
   // client-side sorting / filtering state
   const [sortKey, setSortKey] = useState<string>('fecha');
@@ -166,17 +171,21 @@ export default function CxCClient() {
       setLocalInvoices(prev => [newInv, ...prev]);
       setModalOpen(false);
       try {
-        await fetch('/api/finanzas', {
+        await fetch('/api/finanzas/invoices', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             fecha: newInv.fecha,
-            tipo: 'INGRESO',
-            monto: newInv.totalAmount,
-            categoria: 'CxC',
+            // invoice-specific payload
+            invoiceTipo: newInv.diasCredito && Number(newInv.diasCredito) > 0 ? 'CREDITO' : 'CONTADO',
+            montoSinItbis: newInv.montoSinItbis,
+            itbis: newInv.itbis,
+            totalAmount: newInv.totalAmount,
             proyectoId: newInv.proyectoId || undefined,
             nota: `Factura: ${newInv.factura} Cliente: ${newInv.cliente || ''} DiasCredito:${newInv.diasCredito}`,
-            metadata: { clienteId: newInv.clienteId, clienteLabel: newInv.cliente, montoSinItbis: newInv.montoSinItbis, itbis: newInv.itbis, factura: newInv.factura, diasCredito: newInv.diasCredito, estado: newInv.estado },
+            factura: newInv.factura,
+            clienteId: newInv.clienteId,
+            cliente: newInv.cliente,
           })
         });
       } catch (err) {
@@ -202,6 +211,42 @@ export default function CxCClient() {
       } catch (err) {
         console.error('patch cxC invoice error', err);
       }
+    }
+  }
+
+  // open payment modal for a given invoice
+  function openPaymentModal(inv: any) {
+    setPaymentInvoice(inv);
+    setPaymentForm({ monto: String(inv.balance ?? inv.totalAmount ?? 0), fecha: inputDateFromStored(new Date().toISOString()), metodo: '', nota: '' });
+    setPaymentModalOpen(true);
+  }
+
+  async function submitPayment(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (!paymentInvoice) return;
+    const monto = Number(String(paymentForm.monto).replace(/[^0-9.-]+/g,'')) || 0;
+    if (monto <= 0) { alert('Monto debe ser mayor que 0'); return; }
+    setPaymentSaving(true);
+    try {
+      const res = await fetch('/api/finanzas/payments', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ invoiceId: paymentInvoice._id || paymentInvoice.id, monto, fecha: paymentForm.fecha, metodo: paymentForm.metodo, nota: paymentForm.nota })
+      });
+      if (!res.ok) throw res;
+      const data = await res.json();
+      const updatedInv = data.invoice || null;
+      // update local invoices list
+      if (updatedInv) {
+        setLocalInvoices(prev => prev.map((i:any) => (String(i._id || i.id) === String(updatedInv._id || updatedInv.id)) ? { ...i, ...updatedInv } : i));
+      }
+      setPaymentModalOpen(false);
+      setPaymentInvoice(null);
+    } catch (err) {
+      console.error('submit payment error', err);
+      alert('Error registrando pago');
+    } finally {
+      setPaymentSaving(false);
     }
   }
 
@@ -294,7 +339,7 @@ export default function CxCClient() {
                 <tr><td colSpan={10} className="p-4 text-center text-sm text-muted">No hay facturas registradas</td></tr>
               )}
               {finalDisplayInvoices.map((inv:any) => (
-                <tr key={inv._id || inv.id} className="cursor-pointer" onClick={() => openEdit(inv)} role="button" tabIndex={0} onKeyDown={(e)=>{ if(e.key === 'Enter') openEdit(inv); }}>
+                <tr key={inv._id || inv.id} className="">
                   <td className="p-4 border-b border-neutral-200">{formatDate(inv.fecha)}</td>
                   <td className="p-4 border-b border-neutral-200">{inv.cliente || '-'}</td>
                   <td className="p-4 border-b border-neutral-200">{inv.proyectoName || inv.proyectoId || '-'}</td>
@@ -305,8 +350,15 @@ export default function CxCClient() {
                   <td className="p-4 border-b border-neutral-200">{inv.diasCredito}</td>
                   <td className="p-4 border-b border-neutral-200">{inv.estado}</td>
                   <td className="p-4 border-b border-neutral-200 text-right">{formatCurrency(Number(inv.balance) || 0)}</td>
-                </tr>
-              ))}
+                  <td className="p-4 border-b border-neutral-200 text-right">
+                    <div className="flex items-center gap-2 justify-end">
+                      <button type="button" className="btn btn-ghost" onClick={() => openEdit(inv)} title="Editar">✎</button>
+                      <button type="button" className="btn btn-ghost text-green-600" onClick={() => openPaymentModal(inv)} title="Registrar pago">💵</button>
+                      <button type="button" className="btn btn-ghost text-red-500" onClick={() => { setShowDeleteConfirm(true); setEditingId(inv._id || inv.id || null); }} title="Eliminar">🗑</button>
+                    </div>
+                  </td>
+                 </tr>
+               ))}
              </tbody>
            </table>
          </div>
@@ -426,6 +478,38 @@ export default function CxCClient() {
            </form>
          </div>
        )}
+
+      {/* Payment modal */}
+      {paymentModalOpen && paymentInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setPaymentModalOpen(false)} />
+          <form onSubmit={submitPayment} className="relative z-50 bg-white p-4 rounded shadow w-[95vw] max-w-md">
+            <h3 className="text-lg font-semibold mb-2">Registrar pago — Factura {paymentInvoice.factura || paymentInvoice._id}</h3>
+            <div className="grid grid-cols-1 gap-3">
+              <div>
+                <label className="block text-sm">Fecha</label>
+                <input title="Fecha pago" aria-label="Fecha pago" type="date" value={paymentForm.fecha} onChange={(e)=>setPaymentForm(f=>({ ...f, fecha: e.target.value }))} className="input" required />
+              </div>
+              <div>
+                <label className="block text-sm">Monto</label>
+                <input title="Monto" aria-label="Monto" inputMode="decimal" value={paymentForm.monto} onChange={(e)=>setPaymentForm(f=>({ ...f, monto: e.target.value }))} className="input" required />
+              </div>
+              <div>
+                <label className="block text-sm">Método</label>
+                <input title="Método" aria-label="Método" value={paymentForm.metodo} onChange={(e)=>setPaymentForm(f=>({ ...f, metodo: e.target.value }))} className="input" />
+              </div>
+              <div>
+                <label className="block text-sm">Nota</label>
+                <input title="Nota" aria-label="Nota" value={paymentForm.nota} onChange={(e)=>setPaymentForm(f=>({ ...f, nota: e.target.value }))} className="input" />
+              </div>
+            </div>
+            <div className="mt-3 flex justify-end gap-2">
+              <button type="button" className="btn" onClick={()=>{ setPaymentModalOpen(false); setPaymentInvoice(null); }}>Cancelar</button>
+              <button type="submit" className="btn btn-primary" disabled={paymentSaving}>{paymentSaving ? 'Guardando...' : 'Registrar pago'}</button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }
