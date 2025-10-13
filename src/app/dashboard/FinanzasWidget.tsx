@@ -4,10 +4,15 @@ import React from 'react';
 
 const fetcher = (u:string) => fetch(u).then(r=>r.ok? r.json(): Promise.reject(r));
 
-export default function FinanzasWidget({ className = '' }: { className?: string }){
+export default function FinanzasWidget({ className = '', volunteerIds }: { className?: string; volunteerIds?: string[] }){
   const yearStart = new Date(new Date().getFullYear(),0,1).toISOString().slice(0,10);
   const yearEnd = new Date(new Date().getFullYear(),11,31).toISOString().slice(0,10);
-  const { data, error } = useSWR(`/api/finanzas/summary?desde=${yearStart}&hasta=${yearEnd}`, fetcher);
+  let url = `/api/finanzas/summary?desde=${yearStart}&hasta=${yearEnd}`;
+  if (Array.isArray(volunteerIds) && volunteerIds.length > 0) {
+    // pass proyectos filter by volunteer ids - backend will need to support proyectoVoluntarioIds param or we can fetch projects first; for simplicity we pass volunteerIds as csv and backend will treat it
+    url += `&volunteerIds=${encodeURIComponent(volunteerIds.join(','))}`;
+  }
+  const { data, error } = useSWR(url, fetcher);
   const ingresos = data?.totalIngresos || 0;
   const gastos = data?.totalGastos || 0;
   const balance = ingresos - gastos;

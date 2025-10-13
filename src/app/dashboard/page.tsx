@@ -121,9 +121,9 @@ export default async function DashboardPage() {
           )}
           {(!allowed || allowed.has("dashboard:finanzas")) && (
             <div>
-              {/* Finanzas summary widget */}
+              {/* Finanzas summary widget; restrict for non-admins */}
               {/* @ts-ignore */}
-              <FinanzasWidget />
+              <FinanzasWidget volunteerIds={Array.from(userVolunteerIds)} />
             </div>
           )}
          </div>
