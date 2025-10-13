@@ -1,6 +1,8 @@
 import { auth, role as RoleEnum } from "@/lib/auth";
 import ProgramasPendientesWidget from "./ProgramasPendientesWidget";
 import ProyectosWidget from "./ProyectosWidget";
+import WidgetSelector from "./WidgetSelector";
+import FinanzasWidget from "./FinanzasWidget";
 import { headers } from "next/headers";
 
 export const dynamic = 'force-dynamic';
@@ -105,6 +107,7 @@ export default async function DashboardPage() {
 
       <div className="relative z-10 space-y-4 sm:space-y-6">
         <h1 className="text-xl sm:text-2xl font-bold">Dashboard</h1>
+        <WidgetSelector initialWidgets={settings.widgets || null} initialTheme={((session?.user as any)?.settings||{}).theme} />
         <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
           {(!allowed || allowed.has("dashboard:programas")) && (
             <div>
@@ -116,8 +119,15 @@ export default async function DashboardPage() {
               <ProyectosWidget items={proyectos} isAdmin={isAdmin} userName={userName} />
             </div>
           )}
-        </div>
-      </div>
-    </section>
-  );
-}
+          {(!allowed || allowed.has("dashboard:finanzas")) && (
+            <div>
+              {/* Finanzas summary widget */}
+              {/* @ts-ignore */}
+              <FinanzasWidget />
+            </div>
+          )}
+         </div>
+       </div>
+     </section>
+   );
+ }
