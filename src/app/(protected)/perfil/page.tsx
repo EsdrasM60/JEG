@@ -1,5 +1,6 @@
 import { auth } from "@/lib/auth";
 import Link from "next/link";
+import WidgetConfigClient from './WidgetConfigClient';
 
 export const metadata = { title: "Perfil" };
 
@@ -64,6 +65,12 @@ export default async function PerfilPage() {
           </div>
           <button className="btn btn-primary" type="submit">Guardar preferencias</button>
         </form>
+
+        {/* Client widget config for interactive hide/reorder */}
+        <div className="md:col-span-2">
+          {/* @ts-ignore */}
+          <WidgetConfigClient initialWidgets={(user as any)?.settings?.widgets || []} />
+        </div>
       </div>
     </section>
   );
