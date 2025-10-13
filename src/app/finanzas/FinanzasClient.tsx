@@ -462,7 +462,7 @@ export default function FinanzasClient() {
                   <tr key={r._id} className="border-t cursor-pointer hover:bg-[color:var(--surface-2)]" onClick={() => {
                     setEditingEntryId(String(r._id));
                     setForm({
-                      fecha: inputDateFromStored(inv.fecha ? inv.fecha : new Date().toISOString()),
+                      fecha: inputDateFromStored(r.fecha ? r.fecha : new Date().toISOString()),
                       tipo: r.tipo || 'GASTO',
                       monto: formatCurrency(Number(r.monto) || 0),
                       categoria: r.categoria || '',
