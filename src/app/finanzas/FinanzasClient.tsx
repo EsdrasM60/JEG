@@ -221,6 +221,12 @@ export default function FinanzasClient() {
     return m;
   }, [subcontractors]);
 
+  // determine if selected category is Mano de Obra
+  const isManoDeObra = useMemo(() => {
+    const c = String(form.categoria || '').toLowerCase();
+    return c.includes('mano') && c.includes('obra');
+  }, [form.categoria]);
+
   const totals = useMemo(() => {
     let ingresos = 0;
     let gastos = 0;
@@ -326,7 +332,7 @@ export default function FinanzasClient() {
       <div className="flex items-center justify-between">
         <h1 className="text-2xl font-semibold">Finanzas</h1>
         <div className="flex items-center gap-2">
-          <button className="btn" onClick={() => setShowFilters(s => !s)} aria-expanded={showFilters}>{showFilters ? 'Ocultar filtros' : 'Filtros'}</button>
+          <button className="btn" onClick={() => setShowFilters(s => !s)} aria-expanded={showFilters ? 'true' : 'false'}>{showFilters ? 'Ocultar filtros' : 'Filtros'}</button>
           <button className="btn btn-primary" onClick={() => setModalOpen(true)}>Nuevo</button>
         </div>
       </div>
@@ -575,12 +581,13 @@ export default function FinanzasClient() {
               </div>
               <div>
                 <label className="block text-sm">Proveedor</label>
-                <select title="Proveedor" aria-label="Proveedor" value={form.proveedorId} onChange={(e)=>{ const label = e.target.selectedOptions?.[0]?.text || ''; setForm(f=>({ ...f, proveedorId: e.target.value, proveedor: label })); }} className="input">
+                <select title="Proveedor" aria-label="Proveedor" value={form.proveedorId} onChange={(e)=>{ const label = e.target.selectedOptions?.[0]?.text || ''; setForm(f=>({ ...f, proveedorId: e.target.value, proveedor: label })); }} className="input" disabled={isManoDeObra}>
                   <option value="">--Sin proveedor--</option>
                   {proveedoresList.map((p:any) => (
                     <option key={p.id || p._id} value={p.id || p._id}>{(p.nombre || p.name || p.display) + (p.empresa ? ` (${p.empresa})` : '')}</option>
                   ))}
                 </select>
+                {isManoDeObra && <div className="text-xs text-muted mt-1">No aplica para Mano de Obra — no se generará CxP</div>}
               </div>
               <div className="sm:col-span-2">
                 <label className="block text-sm">Nota</label>
