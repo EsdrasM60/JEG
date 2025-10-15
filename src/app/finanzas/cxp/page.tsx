@@ -173,6 +173,7 @@ export default function CxPPage() {
     const newInv = {
       id: `local-${Date.now()}`,
       fecha: toISOFromDateInput(form.fecha),
+      proyectoId: form.proyectoId || undefined,
       proveedorId: form.proveedorId,
       proveedor: form.proveedor,
       factura: form.factura,
