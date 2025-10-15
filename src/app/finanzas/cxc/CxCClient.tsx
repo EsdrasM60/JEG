@@ -77,7 +77,7 @@ export default function CxCClient() {
   const [paymentFecha, setPaymentFecha] = useState<string>(inputDateFromStored(new Date().toISOString()));
   const [paymentMetodo, setPaymentMetodo] = useState<string>('');
   const [paymentNota, setPaymentNota] = useState<string>('');
-  const [form, setForm] = useState({ fecha: inputDateFromStored(new Date().toISOString()), clienteId: '', cliente: '', proyectoId: '', factura: '', montoSinItbis: '', itbis: '', diasCredito: 0, estado: 'Pendiente' });
+  const [form, setForm] = useState({ fecha: inputDateFromStored(new Date().toISOString()), clienteId: '', cliente: '', proyectoId: '', factura: '', facturaId: '', montoSinItbis: '', itbis: '', diasCredito: 0, estado: 'Pendiente' });
 
   // client-side sorting / filtering state
   const [sortKey, setSortKey] = useState<string>('fecha');
@@ -237,6 +237,7 @@ export default function CxCClient() {
       cliente: inv.cliente || inv.metadata?.clienteLabel || inv.cliente || '',
       proyectoId: inv.proyectoId || '',
       factura: inv.factura || inv.metadata?.factura || '',
+      facturaId: inv.metadata?.facturaId || inv.facturaId || '',
       montoSinItbis: (inv.montoSinItbis ?? inv.metadata?.montoSinItbis ?? inv.monto) || '',
       itbis: (inv.itbis ?? inv.metadata?.itbis) || 0,
       diasCredito: (inv.diasCredito ?? inv.metadata?.diasCredito) || 0,
