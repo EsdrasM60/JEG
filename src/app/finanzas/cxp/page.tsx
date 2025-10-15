@@ -168,75 +168,51 @@ export default function CxPPage() {
     const montoSin = Number(String(form.montoSinItbis).replace(/[^0-9.-]+/g,'')) || 0;
     const itbis = Number(String(form.itbis).replace(/[^0-9.-]+/g,'')) || 0;
     const total = montoSin + itbis;
+    const generatedFacturaId = form.facturaId || ((typeof globalThis !== 'undefined' && (globalThis as any).crypto && (globalThis as any).crypto.randomUUID) ? (globalThis as any).crypto.randomUUID() : `f-${Date.now()}-${Math.random().toString(36).slice(2,8)}`);
     const newInv = {
       id: `local-${Date.now()}`,
       fecha: toISOFromDateInput(form.fecha),
       proveedorId: form.proveedorId,
       proveedor: form.proveedor,
-      proyectoId: form.proyectoId,
       factura: form.factura,
-      montoSinItbis: montoSin,
-      itbis,
-      totalAmount: total,
+      facturaId: generatedFacturaId,
+      montoSinItbis: Number(form.montoSinItbis) || 0,
+      itbis: Number(form.itbis) || 0,
+      totalAmount: (Number(form.montoSinItbis) || 0) + (Number(form.itbis) || 0),
       diasCredito: Number(form.diasCredito) || 0,
       estado: form.estado,
-      balance: computeBalance(total),
+      balance: computeBalance((Number(form.montoSinItbis) || 0) + (Number(form.itbis) || 0)),
     };
 
-    if (!editingId) {
-      // create
-      setLocalInvoices(prev => [newInv, ...prev]);
-      setModalOpen(false);
-      try {
-        const res = await fetch('/api/finanzas/invoices', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fecha: newInv.fecha,
-            factura: newInv.factura,
-            invoiceTipo: newInv.diasCredito && Number(newInv.diasCredito) > 0 ? 'CREDITO' : 'CONTADO',
-            montoSinItbis: newInv.montoSinItbis,
-            itbis: newInv.itbis,
-            totalAmount: newInv.totalAmount,
-            proyectoId: newInv.proyectoId || undefined,
-            nota: `Factura: ${newInv.factura} Proveedor: ${newInv.proveedor || ''} DiasCredito:${newInv.diasCredito}`,
-            proveedorId: newInv.proveedorId,
-            proveedor: newInv.proveedor,
-            categoria: 'CxP',
-            metadata: { estado: newInv.estado, paymentMethod: newInv.diasCredito && Number(newInv.diasCredito) > 0 ? 'Credito' : 'Contado' }
-          })
-        });
-        if (res.ok) {
-          const data = await res.json().catch(()=>null);
-          if (data && data.metadata && data.metadata.facturaId) {
-            setLocalInvoices(prev => prev.map(inv => (inv.id === newInv.id ? { ...inv, metadata: { ...(inv.metadata||{}), facturaId: data.metadata.facturaId }, _id: data._id || inv._id } : inv)));
-          }
+    setLocalInvoices(prev => [newInv, ...prev]);
+    setModalOpen(false);
+    try {
+      const res = await fetch('/api/finanzas/invoices', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          fecha: newInv.fecha,
+          factura: newInv.factura,
+          invoiceTipo: newInv.diasCredito && Number(newInv.diasCredito) > 0 ? 'CREDITO' : 'CONTADO',
+          montoSinItbis: newInv.montoSinItbis,
+          itbis: newInv.itbis,
+          totalAmount: newInv.totalAmount,
+          proyectoId: newInv.proyectoId || undefined,
+          nota: `Factura: ${newInv.factura} Proveedor: ${newInv.proveedor || ''} DiasCredito:${newInv.diasCredito}`,
+          proveedorId: newInv.proveedorId,
+          proveedor: newInv.proveedor,
+          categoria: 'CxP',
+          metadata: { estado: newInv.estado, paymentMethod: newInv.diasCredito && Number(newInv.diasCredito) > 0 ? 'Credito' : 'Contado', facturaId: generatedFacturaId }
+        })
+      });
+      if (res.ok) {
+        const data = await res.json().catch(()=>null);
+        if (data && data.metadata && data.metadata.facturaId) {
+          setLocalInvoices(prev => prev.map(inv => (inv.id === newInv.id ? { ...inv, metadata: { ...(inv.metadata||{}), facturaId: data.metadata.facturaId }, _id: data._id || inv._id } : inv)));
         }
-      } catch (err) {
-        console.error('persist cxP invoice error', err);
       }
-    } else {
-      // patch existing
-      const id = editingId;
-      setLocalInvoices(prev => prev.map(inv => (inv._id === id || inv.id === id) ? { ...inv, ...newInv, _id: id } : inv));
-      setModalOpen(false);
-      setEditingId(null);
-      try {
-        await fetch(`/api/finanzas/${id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            fecha: newInv.fecha,
-            monto: newInv.totalAmount,
-            proyectoId: newInv.proyectoId || undefined,
-            nota: `Factura: ${newInv.factura} Proveedor: ${newInv.proveedor || ''} DiasCredito:${newInv.diasCredito}`,
-            metadata: { proveedorId: newInv.proveedorId, proveedorLabel: newInv.proveedor, montoSinItbis: newInv.montoSinItbis, itbis: newInv.itbis, factura: newInv.factura, diasCredito: newInv.diasCredito, estado: newInv.estado },
-          })
-        });
-        try { mutate(`/api/finanzas/cxp?desde=${yearStart}&hasta=${yearEnd}&page=${page}&pageSize=${pageSize}`); mutate('/api/finanzas/summary'); } catch (e) {}
-      } catch (err) {
-        console.error('patch cxP invoice error', err);
-      }
+    } catch (err) {
+      console.error('persist cxP invoice error', err);
     }
   }
 

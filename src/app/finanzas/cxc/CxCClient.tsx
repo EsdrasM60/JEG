@@ -154,6 +154,7 @@ export default function CxCClient() {
     const montoSin = Number(String(form.montoSinItbis).replace(/[^0-9.-]+/g,'')) || 0;
     const itbis = Number(String(form.itbis).replace(/[^0-9.-]+/g,'')) || 0;
     const total = montoSin + itbis;
+    const generatedFacturaId = form.facturaId || ((typeof globalThis !== 'undefined' && (globalThis as any).crypto && (globalThis as any).crypto.randomUUID) ? (globalThis as any).crypto.randomUUID() : `f-${Date.now()}-${Math.random().toString(36).slice(2,8)}`);
     const newInv = {
       id: `local-${Date.now()}`,
       fecha: toISOFromDateInput(form.fecha),
@@ -161,6 +162,7 @@ export default function CxCClient() {
       cliente: form.cliente,
       proyectoId: form.proyectoId,
       factura: form.factura,
+      facturaId: generatedFacturaId,
       montoSinItbis: montoSin,
       itbis,
       totalAmount: total,
@@ -188,7 +190,7 @@ export default function CxCClient() {
             clienteId: newInv.clienteId,
             cliente: newInv.cliente,
             categoria: 'CxC',
-            metadata: { estado: newInv.estado, paymentMethod: newInv.diasCredito && Number(newInv.diasCredito) > 0 ? 'Credito' : 'Contado' }
+            metadata: { estado: newInv.estado, paymentMethod: newInv.diasCredito && Number(newInv.diasCredito) > 0 ? 'Credito' : 'Contado', facturaId: generatedFacturaId }
           })
         });
         if (res.ok) {
