@@ -91,20 +91,64 @@ export async function POST(req: Request) {
       ? (typeof body.fecha === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(body.fecha) ? new Date(`${body.fecha}T12:00:00Z`) : new Date(body.fecha))
       : new Date();
 
-    // determine tipo: prefer explicit body.tipo; do NOT infer from proyectoId or proveedorId
+    // determine tipo: prefer proyecto -> INGRESO; else if metadata.proveedorId -> GASTO; otherwise use provided or default GASTO
     let tipoFinal = body.tipo || 'GASTO';
+    // normalize helpers
+    const metadata = body.metadata || {};
+    const clienteId = body.clienteId || metadata.clienteId || metadata.clientId || undefined;
+    const proveedorId = body.proveedorId || metadata.proveedorId || undefined;
+    const paymentMethod = _norm(metadata.paymentMethod || body.paymentMethod || metadata.formaPago || body.formaPago || '');
 
-    // determine categoria: respect explicit body.categoria; do NOT auto-route to CxC/CxP based on proyectoId or proveedorId
+    // If paymentMethod explicitly provided, use it to route
+    if (paymentMethod) {
+      if (paymentMethod.includes('credito')) {
+        if (clienteId) tipoFinal = 'INGRESO';
+        else if (proveedorId) tipoFinal = 'GASTO';
+      } else if (paymentMethod.includes('contad')) {
+        // contado: immediate cash movement
+        if (clienteId) tipoFinal = 'INGRESO';
+        else if (proveedorId) tipoFinal = 'GASTO';
+      }
+    } else {
+      // fallback heuristics
+      if (body.proyectoId) tipoFinal = 'INGRESO';
+      else if (proveedorId) tipoFinal = 'GASTO';
+    }
+
+    // determine categoria default when routing automatically, but respect explicit body.categoria
     let categoriaFinal = typeof body.categoria !== 'undefined' ? body.categoria : '';
+    if (!categoriaFinal) {
+      // if paymentMethod given prefer mapping
+      if (paymentMethod) {
+        if (paymentMethod.includes('credito')) {
+          if (clienteId) categoriaFinal = 'CxC';
+          else if (proveedorId) categoriaFinal = 'CxP';
+        } else if (paymentMethod.includes('contad')) {
+          if (clienteId) categoriaFinal = 'Ingresos';
+          else if (proveedorId) categoriaFinal = 'Gastos';
+        }
+      }
+      // fallback: project => CxC, proveedor metadata => CxP
+      if (!categoriaFinal) {
+        if (body.proyectoId) categoriaFinal = 'CxC';
+        else if (proveedorId) categoriaFinal = 'CxP';
+        else categoriaFinal = '';
+      }
+    }
 
-    // Previous behavior auto-assigned CxC/CxP when proyectoId or proveedorId existed.
-    // To keep CxC and CxP modules independent, do not auto-assign those categories here.
+    // Prevent expenses classified as 'Mano de Obra' from feeding CxP (accounts payable)
+    const isManoDeObra = (_norm(categoriaFinal).includes('mano') && _norm(categoriaFinal).includes('obra'))
+      || (_norm(body.categoria).includes('mano') && _norm(body.categoria).includes('obra'))
+      || (_norm(metadata?.categoria).includes('mano') && _norm(metadata?.categoria).includes('obra'));
+    if (tipoFinal === 'GASTO' && isManoDeObra) {
+      // enforce category label and mark metadata so clients/integrations know this must not create CxP
+      categoriaFinal = 'Mano de Obra';
+      body.metadata = { ...(metadata || {}), nonCxP: true };
+    }
 
-    // Prevent certain expense categories from feeding CxP (accounts payable)
-    const categorySource = body.categoria || body.metadata?.categoria || categoriaFinal;
-    if (tipoFinal === 'GASTO' && isExcludedCategory(categorySource)) {
-      categoriaFinal = canonicalCategory(categorySource);
-      body.metadata = { ...(body.metadata || {}), nonCxP: true };
+    // ensure facturaId preserved if provided
+    if (metadata.facturaId || body.facturaId) {
+      body.metadata = { ...(body.metadata || {}), facturaId: metadata.facturaId || body.facturaId };
     }
 
     const doc = await FinanceEntry.create({
