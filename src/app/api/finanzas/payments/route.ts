@@ -27,8 +27,17 @@ export async function POST(req: Request) {
     if (!invoiceId) return NextResponse.json({ error: 'invoiceId required' }, { status: 400 });
     if (monto <= 0) return NextResponse.json({ error: 'monto must be > 0' }, { status: 400 });
 
-    // find invoice
-    const inv = await FinanceEntry.findById(invoiceId);
+    // find invoice by _id first, otherwise try facturaId in metadata
+    let inv = null;
+    try {
+      inv = await FinanceEntry.findById(invoiceId);
+    } catch (err) {
+      inv = null;
+    }
+    if (!inv) {
+      // try lookup by server-generated facturaId
+      inv = await FinanceEntry.findOne({ 'metadata.facturaId': invoiceId });
+    }
     if (!inv) return NextResponse.json({ error: 'invoice not found' }, { status: 404 });
     if (!inv.metadata || !inv.metadata.invoice) return NextResponse.json({ error: 'target is not an invoice' }, { status: 400 });
 
@@ -44,15 +53,23 @@ export async function POST(req: Request) {
       proyectoId: inv.proyectoId || undefined,
       subContratistaId: inv.subContratistaId || undefined,
       nota: nota || `Pago aplicado a factura ${inv.metadata?.factura || invoiceId}`,
-      metadata: { payment: true, invoiceId: invoiceId, metodo: metodo }
+      metadata: { payment: true, invoiceId: invoiceId, metodo: metodo, facturaId: inv.metadata?.facturaId }
     });
 
     // update invoice balance and estado
-    const prevBalance = Number(inv.metadata?.balance || 0);
+    const prevBalance = Number(inv.metadata?.balance ?? inv.balance ?? inv.monto ?? 0);
     const newBalance = Math.max(0, prevBalance - monto);
     inv.metadata = { ...(inv.metadata || {}), balance: newBalance } as any;
     if (newBalance <= 0) inv.metadata.estado = 'Pagado';
     else if (newBalance < (inv.monto || 0)) inv.metadata.estado = 'Parcial';
+    // append payment reference to invoice metadata for audit
+    try {
+      const paymentsArr = Array.isArray(inv.metadata?.payments) ? inv.metadata.payments : [];
+      paymentsArr.push({ paymentId: payment._id, monto, fecha, metodo });
+      inv.metadata.payments = paymentsArr;
+    } catch (e) {
+      // ignore metadata enrichment errors
+    }
     await inv.save();
 
     return NextResponse.json({ payment, invoice: inv });
