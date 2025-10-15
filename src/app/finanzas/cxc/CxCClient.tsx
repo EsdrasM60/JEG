@@ -173,7 +173,7 @@ export default function CxCClient() {
       setLocalInvoices(prev => [newInv, ...prev]);
       setModalOpen(false);
       try {
-        await fetch('/api/finanzas/invoices', {
+        const res = await fetch('/api/finanzas/invoices', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
@@ -188,9 +188,16 @@ export default function CxCClient() {
             clienteId: newInv.clienteId,
             cliente: newInv.cliente,
             categoria: 'CxC',
-            metadata: { estado: newInv.estado }
+            metadata: { estado: newInv.estado, paymentMethod: newInv.diasCredito && Number(newInv.diasCredito) > 0 ? 'Credito' : 'Contado' }
           })
         });
+        if (res.ok) {
+          const data = await res.json().catch(()=>null);
+          // if server returned facturaId, update local invoice metadata
+          if (data && data.metadata && data.metadata.facturaId) {
+            setLocalInvoices(prev => prev.map(inv => (inv.id === newInv.id ? { ...inv, metadata: { ...(inv.metadata||{}), facturaId: data.metadata.facturaId }, _id: data._id || inv._id } : inv)));
+          }
+        }
         // refresh server lists
         try { mutate(`/api/finanzas/cxc?desde=${yearStart}&hasta=${yearEnd}&page=${page}&pageSize=${pageSize}`); mutate('/api/finanzas/summary'); } catch (e) {}
       } catch (err) {

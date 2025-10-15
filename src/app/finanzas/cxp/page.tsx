@@ -1,6 +1,6 @@
 "use client";
 import React, { useMemo, useState } from 'react';
-import useSWR from 'swr';
+import useSWR, { mutate } from 'swr';
 import Link from 'next/link';
 import { toISOFromDateInput, formatDateTz, inputDateFromStored } from '@/lib/dates';
 
@@ -58,6 +58,13 @@ export default function CxPPage() {
   const [modalOpen, setModalOpen] = useState(false);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  // payment modal state
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [paymentInvoice, setPaymentInvoice] = useState<any | null>(null);
+  const [paymentMonto, setPaymentMonto] = useState<string>('');
+  const [paymentFecha, setPaymentFecha] = useState<string>(inputDateFromStored(new Date().toISOString()));
+  const [paymentMetodo, setPaymentMetodo] = useState<string>('');
+  const [paymentNota, setPaymentNota] = useState<string>('');
   const [form, setForm] = useState<any>({
     fecha: inputDateFromStored(new Date().toISOString()),
     proveedorId: '',
@@ -181,19 +188,30 @@ export default function CxPPage() {
       setLocalInvoices(prev => [newInv, ...prev]);
       setModalOpen(false);
       try {
-        await fetch('/api/finanzas', {
+        const res = await fetch('/api/finanzas/invoices', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             fecha: newInv.fecha,
-            tipo: 'EGRESO',
-            monto: newInv.totalAmount,
-            categoria: 'CxP',
+            factura: newInv.factura,
+            invoiceTipo: newInv.diasCredito && Number(newInv.diasCredito) > 0 ? 'CREDITO' : 'CONTADO',
+            montoSinItbis: newInv.montoSinItbis,
+            itbis: newInv.itbis,
+            totalAmount: newInv.totalAmount,
             proyectoId: newInv.proyectoId || undefined,
             nota: `Factura: ${newInv.factura} Proveedor: ${newInv.proveedor || ''} DiasCredito:${newInv.diasCredito}`,
-            metadata: { proveedorId: newInv.proveedorId, proveedorLabel: newInv.proveedor, montoSinItbis: newInv.montoSinItbis, itbis: newInv.itbis, factura: newInv.factura, diasCredito: newInv.diasCredito, estado: newInv.estado },
+            proveedorId: newInv.proveedorId,
+            proveedor: newInv.proveedor,
+            categoria: 'CxP',
+            metadata: { estado: newInv.estado, paymentMethod: newInv.diasCredito && Number(newInv.diasCredito) > 0 ? 'Credito' : 'Contado' }
           })
         });
+        if (res.ok) {
+          const data = await res.json().catch(()=>null);
+          if (data && data.metadata && data.metadata.facturaId) {
+            setLocalInvoices(prev => prev.map(inv => (inv.id === newInv.id ? { ...inv, metadata: { ...(inv.metadata||{}), facturaId: data.metadata.facturaId }, _id: data._id || inv._id } : inv)));
+          }
+        }
       } catch (err) {
         console.error('persist cxP invoice error', err);
       }
@@ -215,6 +233,7 @@ export default function CxPPage() {
             metadata: { proveedorId: newInv.proveedorId, proveedorLabel: newInv.proveedor, montoSinItbis: newInv.montoSinItbis, itbis: newInv.itbis, factura: newInv.factura, diasCredito: newInv.diasCredito, estado: newInv.estado },
           })
         });
+        try { mutate(`/api/finanzas/cxp?desde=${yearStart}&hasta=${yearEnd}&page=${page}&pageSize=${pageSize}`); mutate('/api/finanzas/summary'); } catch (e) {}
       } catch (err) {
         console.error('patch cxP invoice error', err);
       }
@@ -244,6 +263,46 @@ export default function CxPPage() {
       await fetch(`/api/finanzas/${id}`, { method: 'DELETE' });
     } catch (err) {
       console.error('delete cxP invoice error', err);
+    }
+  }
+
+  // open payment modal
+  function openPayment(inv: any) {
+    setPaymentInvoice(inv);
+    setPaymentMonto(String(Number(inv.metadata?.balance ?? inv.balance ?? inv.totalAmount ?? 0).toFixed ? Number((inv.metadata?.balance ?? inv.balance ?? inv.totalAmount ?? 0)).toFixed(2) : (inv.metadata?.balance ?? inv.balance ?? inv.totalAmount ?? 0)));
+    setPaymentFecha(inputDateFromStored(new Date().toISOString()));
+    setPaymentMetodo('');
+    setPaymentNota('');
+    setPaymentModalOpen(true);
+  }
+
+  async function submitPayment(e?: React.FormEvent) {
+    e?.preventDefault();
+    if (!paymentInvoice) return;
+    const invoiceId = paymentInvoice._id || paymentInvoice.id;
+    const montoNum = Number(String(paymentMonto).replace(/[^0-9.-]+/g,'')) || 0;
+    if (montoNum <= 0) return alert('Monto debe ser mayor que 0');
+    try {
+      const res = await fetch('/api/finanzas/payments', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ invoiceId, monto: montoNum, fecha: paymentFecha, metodo: paymentNota, nota: paymentNota }) });
+      if (!res.ok) throw res;
+      const data = await res.json();
+      setLocalInvoices(prev => prev.map(inv => {
+        const id = inv._id || inv.id;
+        if (String(id) === String(invoiceId)) {
+          const updated = { ...inv };
+          const newBal = data.invoice?.metadata?.balance ?? (updated.metadata?.balance ?? updated.balance) - montoNum;
+          updated.metadata = { ...(updated.metadata || {}), balance: newBal, estado: data.invoice?.metadata?.estado ?? (newBal <= 0 ? 'Pagado' : 'Parcial') };
+          updated.balance = newBal;
+          return updated;
+        }
+        return inv;
+      }));
+      setPaymentModalOpen(false);
+      setPaymentInvoice(null);
+      try { mutate(`/api/finanzas/cxp?desde=${yearStart}&hasta=${yearEnd}&page=${page}&pageSize=${pageSize}`); mutate('/api/finanzas/summary'); } catch (e) {}
+    } catch (err) {
+      console.error('submit payment error', err);
+      alert('Error registrando pago');
     }
   }
 
@@ -309,7 +368,7 @@ export default function CxPPage() {
                 <tr><td colSpan={10} className="p-4 text-center text-sm text-muted">No hay facturas registradas</td></tr>
               )}
               {finalDisplayInvoices.map((inv:any) => (
-                <tr key={inv._id || inv.id} className="cursor-pointer" onClick={() => openEdit(inv)} role="button" tabIndex={0} onKeyDown={(e)=>{ if(e.key === 'Enter') openEdit(inv); }}>
+                <tr key={inv._id || inv.id} className="">
                   <td className="p-4 border-b border-neutral-200">{formatDate(inv.fecha)}</td>
                   <td className="p-4 border-b border-neutral-200">{inv.proveedor || '-'}</td>
                   <td className="p-4 border-b border-neutral-200">{inv.proyectoName || inv.proyectoId || '-'}</td>
@@ -320,8 +379,14 @@ export default function CxPPage() {
                   <td className="p-4 border-b border-neutral-200">{inv.diasCredito}</td>
                   <td className="p-4 border-b border-neutral-200">{inv.estado}</td>
                   <td className="p-4 border-b border-neutral-200 text-right">{formatCurrency(Number(inv.runningBalance ?? inv.balance) || 0)}</td>
+                  <td className="p-4 border-b border-neutral-200">
+                    <div className="flex items-center gap-2 justify-end">
+                      <button className="btn btn-ghost" onClick={(e)=>{ e.stopPropagation(); openPayment(inv); }} title="Registrar pago">Pagar</button>
+                      <button className="btn btn-ghost" onClick={(e)=>{ e.stopPropagation(); openEdit(inv); }} title="Editar">Editar</button>
+                    </div>
+                  </td>
                 </tr>
-               ))}
+                ))}
               </tbody>
             </table>
           </div>
@@ -437,9 +502,41 @@ export default function CxPPage() {
                 </div>
               </div>
             )}
-           </form>
-         </div>
-       )}
+            </form>
+          </div>
+        )}
+      
+      {/* Payment modal */}
+      {paymentModalOpen && paymentInvoice && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="absolute inset-0 bg-black/50" onClick={() => setPaymentModalOpen(false)} />
+          <form onSubmit={submitPayment} className="relative z-50 bg-white p-4 rounded shadow w-[95vw] max-w-md">
+            <h3 className="text-lg font-semibold mb-2">Registrar pago - {paymentInvoice.factura || paymentInvoice._id}</h3>
+            <div className="grid grid-cols-1 gap-3">
+              <label className="block">
+                <span className="text-sm">Fecha</span>
+                <input title="Fecha pago" aria-label="Fecha pago" type="date" value={paymentFecha} onChange={(e)=>setPaymentFecha(e.target.value)} className="input" required />
+              </label>
+              <label className="block">
+                <span className="text-sm">Monto</span>
+                <input title="Monto pago" aria-label="Monto pago" inputMode="decimal" value={paymentMonto} onChange={(e)=>setPaymentMonto(e.target.value)} className="input" required />
+              </label>
+              <label className="block">
+                <span className="text-sm">Método</span>
+                <input title="Método" aria-label="Método" value={paymentMetodo} onChange={(e)=>setPaymentMetodo(e.target.value)} className="input" />
+              </label>
+              <label className="block">
+                <span className="text-sm">Nota</span>
+                <input title="Nota" aria-label="Nota" value={paymentNota} onChange={(e)=>setPaymentNota(e.target.value)} className="input" />
+              </label>
+            </div>
+            <div className="mt-3 flex justify-end gap-2">
+              <button type="button" className="btn" onClick={()=>{ setPaymentModalOpen(false); setPaymentInvoice(null); }}>Cancelar</button>
+              <button type="submit" className="btn btn-primary">Registrar pago</button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

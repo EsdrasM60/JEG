@@ -12,12 +12,15 @@ export default function IngresosGastosPage() {
   const [monthData, setMonthData] = useState<any[]>([]);
 
   const totals = useMemo(() => {
-    if (!Array.isArray(data)) return { ingresos: 0, gastos: 0 };
+    if (!Array.isArray(data)) return { ingresos: 0, gastos: 0, pagos: 0 };
     return data.reduce((acc: any, item: any) => {
       const v = Number(item.monto) || 0;
+      if (item.metadata?.payment) {
+        acc.pagos += v;
+      }
       if (String(item.tipo || '').toUpperCase() === 'INGRESO') acc.ingresos += v; else acc.gastos += v;
       return acc;
-    }, { ingresos: 0, gastos: 0 });
+    }, { ingresos: 0, gastos: 0, pagos: 0 });
   }, [data]);
 
   useEffect(() => {
@@ -41,8 +44,9 @@ export default function IngresosGastosPage() {
     <div className="p-6">
       <div className="flex items-center justify-between mb-4">
         <h1 className="text-2xl font-semibold">Ingresos / Gastos ({year})</h1>
-        <div>
+        <div className="flex items-center gap-2">
           <button className="btn btn-primary" onClick={() => window.location.href = '/finanzas/cxc'}>Nuevo (CxC)</button>
+          <button className="btn" onClick={() => window.location.href = '/finanzas/cxp'}>Nuevo (CxP)</button>
         </div>
       </div>
 
@@ -52,6 +56,7 @@ export default function IngresosGastosPage() {
           <div className="mt-3 text-2xl font-semibold">{Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(totals.ingresos - totals.gastos)}</div>
           <div className="mt-2 text-sm text-muted">Ingresos: {Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(totals.ingresos)}</div>
           <div className="text-sm text-muted">Gastos: {Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(totals.gastos)}</div>
+          <div className="text-sm text-muted">Pagos registrados: {Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(totals.pagos)}</div>
         </div>
 
         <div className="lg:col-span-2 p-4 border rounded bg-white shadow-sm">
@@ -73,21 +78,29 @@ export default function IngresosGastosPage() {
               <tr>
                 <th className="p-2 text-left">Fecha</th>
                 <th className="p-2 text-left">Tipo</th>
-                <th className="p-2 text-left">Cliente/Proveedor</th>
+                <th className="p-2 text-left">Cliente/Proveedor / Nota</th>
                 <th className="p-2 text-right">Monto</th>
                 <th className="p-2 text-left">Estado</th>
               </tr>
             </thead>
             <tbody>
-              {data.map((d: any) => (
-                <tr key={d._id} className="hover:bg-neutral-50">
-                  <td className="p-2">{new Date(d.fecha).toLocaleDateString()}</td>
-                  <td className="p-2">{d.tipo}</td>
-                  <td className="p-2">{d.metadata?.cliente || d.metadata?.proveedor || ''}</td>
-                  <td className="p-2 text-right">{Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(Number(d.monto) || 0)}</td>
-                  <td className="p-2">{d.metadata?.estado || ''}</td>
-                </tr>
-              ))}
+              {data.map((d: any) => {
+                const isPayment = Boolean(d.metadata?.payment);
+                const tipoLabel = isPayment ? `Pago (${d.tipo || ''})` : (d.tipo || '');
+                const party = d.metadata?.cliente || d.metadata?.proveedor || '';
+                const invoiceRef = d.metadata?.invoiceId ? `Factura: ${d.metadata?.invoiceId}` : (d.metadata?.invoice ? `Factura: ${d.metadata?.invoice}` : '');
+                const note = d.nota || d.metadata?.nota || '';
+                const partyDisplay = [party, invoiceRef, note].filter(Boolean).join(' — ');
+                return (
+                  <tr key={d._id} className="hover:bg-neutral-50">
+                    <td className="p-2">{new Date(d.fecha).toLocaleDateString()}</td>
+                    <td className="p-2">{tipoLabel}</td>
+                    <td className="p-2">{partyDisplay}</td>
+                    <td className="p-2 text-right">{Intl.NumberFormat('es-DO', { style: 'currency', currency: 'DOP' }).format(Number(d.monto) || 0)}</td>
+                    <td className="p-2">{d.metadata?.estado || ''}</td>
+                  </tr>
+                );
+              })}
             </tbody>
           </table>
         </div>

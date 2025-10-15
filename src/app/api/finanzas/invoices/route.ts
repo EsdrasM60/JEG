@@ -88,6 +88,12 @@ export async function POST(req: Request) {
       itbis: itbis || undefined,
     };
 
+    // Generate or preserve an internal facturaId on the server. This is different from the
+    // human-readable `factura` field and will be used to link payments and reconciliations.
+    const generatedFacturaId = body.facturaId || (body.metadata && body.metadata.facturaId) ||
+      (typeof globalThis !== 'undefined' && (globalThis as any).crypto && (globalThis as any).crypto.randomUUID ? (globalThis as any).crypto.randomUUID() : `f-${Date.now()}-${Math.random().toString(36).slice(2,8)}`);
+    metadata.facturaId = generatedFacturaId;
+
     if (invoiceTipo === 'CREDITO') {
       metadata.balance = totalAmount;
       metadata.estado = 'Pendiente';
