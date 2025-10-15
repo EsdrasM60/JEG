@@ -285,6 +285,12 @@ export default function CxPPage() {
     }
   }
 
+  // helper to copy facturaId
+  const copyFacturaId = async (id?: string) => {
+    if (!id) return;
+    try { await navigator.clipboard.writeText(String(id)); console.log('copied', id); } catch (e) { console.warn('copy failed', e); }
+  };
+
   return (
     <div className="p-6 max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-4">
@@ -351,7 +357,16 @@ export default function CxPPage() {
                   <td className="p-4 border-b border-neutral-200">{formatDate(inv.fecha)}</td>
                   <td className="p-4 border-b border-neutral-200">{inv.proveedor || '-'}</td>
                   <td className="p-4 border-b border-neutral-200">{inv.proyectoName || inv.proyectoId || '-'}</td>
-                  <td className="p-4 border-b border-neutral-200">{inv.factura || '-'}</td>
+                  <td className="p-4 border-b border-neutral-200">{inv.factura || '-'}
+                  <div className="text-xs text-muted mt-1">
+                    {inv.metadata?.facturaId || inv.facturaId ? (
+                      <span className="font-mono text-xs">ID: {(inv.metadata?.facturaId || inv.facturaId)}</span>
+                    ) : null}
+                    { (inv.metadata?.facturaId || inv.facturaId) && (
+                      <button type="button" className="ml-2 btn btn-ghost btn-sm" onClick={(e)=>{ e.stopPropagation(); copyFacturaId(inv.metadata?.facturaId || inv.facturaId); }} title="Copiar ID">Copiar ID</button>
+                    )}
+                  </div>
+                  </td>
                   <td className="p-4 border-b border-neutral-200 text-right">{formatCurrency(Number(inv.montoSinItbis) || 0)}</td>
                   <td className="p-4 border-b border-neutral-200 text-right">{formatCurrency(Number(inv.itbis) || 0)}</td>
                   <td className="p-4 border-b border-neutral-200 text-right">{formatCurrency(Number(inv.totalAmount) || 0)}</td>
@@ -491,6 +506,12 @@ export default function CxPPage() {
           <div className="absolute inset-0 bg-black/50" onClick={() => setPaymentModalOpen(false)} />
           <form onSubmit={submitPayment} className="relative z-50 bg-white p-4 rounded shadow w-[95vw] max-w-md">
             <h3 className="text-lg font-semibold mb-2">Registrar pago - {paymentInvoice.factura || paymentInvoice._id}</h3>
+            {paymentInvoice?.metadata?.facturaId && (
+              <div className="flex items-center gap-2 mb-2">
+                <div className="text-sm text-muted">Factura ID: <span className="font-mono">{paymentInvoice.metadata.facturaId}</span></div>
+                <button type="button" className="btn btn-ghost btn-sm" onClick={()=>copyFacturaId(paymentInvoice.metadata.facturaId)}>Copiar ID</button>
+              </div>
+            )}
             <div className="grid grid-cols-1 gap-3">
               <label className="block">
                 <span className="text-sm">Fecha</span>
